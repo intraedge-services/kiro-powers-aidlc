@@ -1,0 +1,12 @@
+{
+  "name": "AIDLC Pre-Code Generation",
+  "version": "1.0.0",
+  "description": "Before code generation begins, activates relevant powers and moves the board item to In Progress.",
+  "when": {
+    "type": "preTaskExecution"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Read the project config from .kiro/steering/project-config.md. Check the Installed Powers Registry. For the current AIDLC unit about to start code generation: 1) If 'project-management' power is registered: find the matching GitHub issue and move it to 'In Progress' on the board. 2) If 'data-engineering' power is registered AND the unit involves Glue/EMR/Athena/Spark: note that this power should be used during code generation. 3) If 'infrastructure' power is registered AND the unit involves CDK/Terraform/CloudFormation: note that this power should be used for IaC validation. Report what powers were activated."
+  }
+}

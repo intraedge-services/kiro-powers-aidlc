@@ -1,0 +1,13 @@
+{
+  "name": "kiro-powers-aidlc",
+  "displayName": "AIDLC — Adaptive AI Development Lifecycle",
+  "version": "1.0.0",
+  "description": "Orchestrator power for structured AI-assisted software development. Manages the full AIDLC workflow and automatically activates other powers at the right stages based on project configuration.",
+  "keywords": ["aidlc", "software development", "workflow", "lifecycle", "requirements", "user stories", "code generation", "project management", "orchestrator"],
+  "author": "IntraEdge",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/intraedge-services/kiro-powers-aidlc"
+  }
+}

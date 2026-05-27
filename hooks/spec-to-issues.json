@@ -1,0 +1,12 @@
+{
+  "name": "AIDLC Spec to Issues",
+  "version": "1.0.0",
+  "description": "After AIDLC user stories are approved, creates GitHub issues and adds them to the project board.",
+  "when": {
+    "type": "userTriggered"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Read the project config from .kiro/steering/project-config.md. Check if a power is registered with category 'project-management'. If yes, activate that power. Then read aidlc-docs/inception/user-stories/stories.md and for each user story: 1) Create a GitHub issue in the configured repo with title '[AIDLC Story {id}] {title}', body containing the story text + acceptance criteria as checkboxes + traceability section, labels 'aidlc:story' + feature area label, assigned to the team lead. 2) Add each issue to the configured project board. 3) Report how many issues were created. If no project-management power is registered, report that and skip."
+  }
+}
