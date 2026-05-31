@@ -1,9 +1,24 @@
 {
   "name": "kiro-powers-aidlc",
-  "displayName": "AIDLC — Adaptive AI Development Lifecycle",
-  "version": "1.0.0",
-  "description": "Orchestrator power for structured AI-assisted software development. Manages the full AIDLC workflow and automatically activates other powers at the right stages based on project configuration.",
-  "keywords": ["aidlc", "software development", "workflow", "lifecycle", "requirements", "user stories", "code generation", "project management", "orchestrator"],
+  "displayName": "AI-DLC with Power Orchestration",
+  "version": "2.0.0",
+  "description": "Complete AI-DLC methodology power for Kiro with integrated power orchestration. Includes the full adaptive workflow (Inception, Construction, Operations) plus automated GitHub board sync, multi-power coordination, and project-management hooks. Based on the official awslabs/aidlc-workflows methodology.",
+  "keywords": [
+    "aidlc",
+    "ai-dlc",
+    "software development",
+    "workflow",
+    "lifecycle",
+    "requirements",
+    "user stories",
+    "code generation",
+    "project management",
+    "orchestrator",
+    "inception",
+    "construction",
+    "github",
+    "board sync"
+  ],
   "author": "IntraEdge",
   "license": "MIT",
   "repository": {

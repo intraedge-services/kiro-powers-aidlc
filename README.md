@@ -1,14 +1,107 @@
 # kiro-powers-aidlc
 
-Adaptive AI Development Lifecycle — an orchestrator power for Kiro.
+**AI-Driven Development Lifecycle + Power Orchestration** — a complete Kiro Power that combines the official AI-DLC methodology with automated project management, multi-power coordination, and GitHub board sync.
 
-## Overview
+## What This Is
 
-This power provides a structured, adaptive software development workflow that:
-- Guides development through Inception → Construction → Operations phases
-- Automatically orchestrates other installed powers at the right moments
-- Integrates with GitHub for project management (issues, board, PRs)
-- Works across any IntraEdge project with minimal per-project config
+This power packages two things into one installable unit:
+
+1. **The full official AI-DLC methodology** — the complete adaptive software development workflow from [aws-samples/sample-aidlc-kiro-power](https://github.com/aws-samples/sample-aidlc-kiro-power), including all 24 workflow files across Inception, Construction, and Operations phases.
+
+2. **Power orchestration add-ons** — automated GitHub issue creation from specs, board status sync as work progresses, and intelligent activation of other installed powers (Data Engineering, Infrastructure, Diagrams) at the right AIDLC stage.
+
+## How It Differs from Vanilla AI-DLC
+
+| Feature | Official AI-DLC | This Power |
+|---------|----------------|------------|
+| Adaptive 3-phase workflow | ✅ | ✅ |
+| Quality gates & approvals | ✅ | ✅ |
+| Full audit trail | ✅ | ✅ |
+| Content validation | ✅ | ✅ |
+| GitHub issue creation from stories | ❌ | ✅ |
+| Project board sync (Todo → In Progress → Done) | ❌ | ✅ |
+| Auto-activate Data Engineering power | ❌ | ✅ |
+| Auto-activate Infrastructure power | ❌ | ✅ |
+| Auto-activate Diagrams power | ❌ | ✅ |
+| Per-project config via steering | ❌ | ✅ |
+| Hooks for stage transitions | ❌ | ✅ |
+
+## Prerequisites
+
+**Required:**
+- Kiro IDE with Powers support
+
+**Recommended:**
+- [kiro-powers-github](https://github.com/intraedge-services/kiro-powers-github) — for issue creation and board sync
+- A `.kiro/steering/project-config.md` in your workspace (see `templates/project-config.md`)
+
+**Optional (activated automatically when registered):**
+- `kiro-powers-aws-data-engineering` — Glue/EMR/Athena patterns during code generation
+- `aws-infrastructure-as-code` — CDK/Terraform/CloudFormation guidance during infrastructure design
+- `kiro-powers-diagrams` — Architecture and component diagrams
+
+## Installation
+
+### Option 1: Copy to your project (recommended for teams)
+
+```bash
+# Clone this repo
+git clone https://github.com/intraedge-services/kiro-powers-aidlc.git /tmp/aidlc-power
+
+# Copy into your project's .kiro/powers/ directory
+mkdir -p .kiro/powers
+cp -R /tmp/aidlc-power .kiro/powers/kiro-powers-aidlc
+
+# Copy hooks to activate them
+mkdir -p .kiro/hooks
+cp .kiro/powers/kiro-powers-aidlc/hooks/*.json .kiro/hooks/
+
+# Clean up
+rm -rf /tmp/aidlc-power
+```
+
+### Option 2: Git submodule
+
+```bash
+mkdir -p .kiro/powers
+git submodule add https://github.com/intraedge-services/kiro-powers-aidlc.git .kiro/powers/kiro-powers-aidlc
+cp .kiro/powers/kiro-powers-aidlc/hooks/*.json .kiro/hooks/
+```
+
+### Post-Installation: Add project config
+
+Copy the template to your workspace steering directory:
+
+```bash
+mkdir -p .kiro/steering
+cp .kiro/powers/kiro-powers-aidlc/templates/project-config.md .kiro/steering/project-config.md
+```
+
+Edit `.kiro/steering/project-config.md` with your project's details (GitHub org, repo, board number, team, tech stack, and which powers you have installed).
+
+See `examples/cos-project-config.md` for a real-world example.
+
+## Usage
+
+Once installed, start any development request and the AI-DLC workflow activates automatically. Say something like:
+
+> "Using AI-DLC, build me a data ingestion pipeline for CSV files"
+
+The workflow will:
+1. Detect your workspace (greenfield vs brownfield)
+2. Gather requirements with adaptive depth
+3. Plan which stages to execute
+4. Guide you through design and implementation
+5. Sync progress to your GitHub board (if configured)
+
+### Manual Triggers
+
+The `spec-to-issues` hook is user-triggered — after AIDLC generates user stories and you approve them, trigger it manually to create GitHub issues from the stories.
+
+### Automatic Triggers
+
+- `pre-code-gen` fires before each task execution to move board items and activate relevant powers
+- `aidlc-board-sync` fires after task completion to update board status
 
 ## Architecture
 
@@ -18,39 +111,93 @@ This power provides a structured, adaptive software development workflow that:
 │              (Orchestrator Power)                         │
 ├─────────────────────────────────────────────────────────┤
 │  Steering:                                               │
-│  • aidlc-core-workflow.md    → Stage definitions         │
+│  • core-workflow.md          → Full AIDLC stage rules    │
 │  • power-orchestration.md   → When to call other powers  │
 │  • github-integration.md    → Spec→Issues, board sync    │
+│  • project-config-template  → Setup guide                │
+│                                                          │
+│  Workflows (24 files):                                   │
+│  • common/     (10 files)   → Shared rules & templates   │
+│  • inception/  (7 files)    → Planning & architecture    │
+│  • construction/ (6 files)  → Design & implementation    │
+│  • operations/ (1 file)     → Deployment (placeholder)   │
 │                                                          │
 │  Hooks:                                                  │
 │  • spec-to-issues.json      → Manual: stories → issues   │
-│  • aidlc-board-sync.json    → Auto: stage done → board   │
-│  • pre-code-gen.json        → Auto: activate DE/IaC      │
+│  • pre-code-gen.json        → Auto: activate powers      │
+│  • aidlc-board-sync.json    → Auto: sync board status    │
 ├─────────────────────────────────────────────────────────┤
 │                    Orchestrates                           │
 ├──────────┬──────────┬──────────────┬────────────────────┤
 │ GitHub   │ Data Eng │ Infra (IaC)  │ Diagrams           │
 │ Power    │ Power    │ Power        │ Power              │
 └──────────┴──────────┴──────────────┴────────────────────┘
-         ↑                                    ↑
-         └── Registered in project-config.md ─┘
 ```
 
-## Per-Project Setup
+## Directory Structure
 
-1. Install this power + any dependent powers you need
-2. Add `.kiro/steering/project-config.md` to your repo (see `templates/`)
-3. Start developing — AIDLC activates automatically
+```
+kiro-powers-aidlc/
+├── POWER.md                          # Power manifest & documentation
+├── package.json                      # Power metadata (v2.0.0)
+├── LICENSE                           # MIT
+├── README.md                         # This file
+├── steering/
+│   ├── core-workflow.md              # Full AIDLC workflow rules
+│   ├── power-orchestration.md        # Multi-power coordination
+│   ├── github-integration.md         # GitHub issue/board integration
+│   └── project-config-template.md    # Config setup guide
+├── workflows/
+│   ├── common/                       # Shared workflow rules
+│   │   ├── process-overview.md
+│   │   ├── terminology.md
+│   │   ├── content-validation.md
+│   │   ├── question-format-guide.md
+│   │   ├── session-continuity.md
+│   │   ├── welcome-message.md
+│   │   ├── depth-levels.md
+│   │   ├── error-handling.md
+│   │   ├── overconfidence-prevention.md
+│   │   └── workflow-changes.md
+│   ├── inception/                    # Planning & architecture
+│   │   ├── workspace-detection.md
+│   │   ├── reverse-engineering.md
+│   │   ├── requirements-analysis.md
+│   │   ├── user-stories.md
+│   │   ├── workflow-planning.md
+│   │   ├── application-design.md
+│   │   └── units-generation.md
+│   ├── construction/                 # Design & implementation
+│   │   ├── functional-design.md
+│   │   ├── nfr-requirements.md
+│   │   ├── nfr-design.md
+│   │   ├── infrastructure-design.md
+│   │   ├── code-generation.md
+│   │   └── build-and-test.md
+│   └── operations/                   # Deployment (placeholder)
+│       └── operations.md
+├── hooks/
+│   ├── spec-to-issues.json
+│   ├── pre-code-gen.json
+│   └── aidlc-board-sync.json
+├── templates/
+│   └── project-config.md            # Copy to .kiro/steering/
+└── examples/
+    └── cos-project-config.md         # Real-world example config
+```
 
-## Dependencies
+## Configuration
 
-| Power | Required? | Purpose |
-|-------|-----------|--------|
-| `kiro-powers-github` | Recommended | Project management, issues, PRs |
-| `kiro-powers-aws-data-engineering` | Optional | Glue/EMR/Athena patterns |
-| `aws-infrastructure-as-code` | Optional | CDK/TF/CFN guidance |
-| `kiro-powers-diagrams` | Optional | Architecture diagrams |
+This is a pure methodology + steering power. No MCP servers required.
+
+All project-specific configuration lives in `.kiro/steering/project-config.md` in your workspace. The power reads this at workflow start to determine which powers to orchestrate and where to sync issues.
+
+## Credits
+
+- Core AI-DLC methodology: [awslabs/aidlc-workflows](https://github.com/awslabs/aidlc-workflows) (MIT-0)
+- Sample Kiro Power structure: [aws-samples/sample-aidlc-kiro-power](https://github.com/aws-samples/sample-aidlc-kiro-power) (MIT-0)
+- Power orchestration & GitHub integration: [IntraEdge](https://github.com/intraedge-services)
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE)
