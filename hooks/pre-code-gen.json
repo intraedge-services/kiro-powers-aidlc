@@ -1,12 +1,13 @@
 {
   "name": "AIDLC Pre-Code Generation",
-  "version": "1.0.0",
-  "description": "Before code generation begins, activates relevant powers and moves the board item to In Progress.",
+  "version": "2.0.0",
+  "description": "When aidlc-state.md is updated to Code Generation stage, activates relevant powers and moves board items.",
   "when": {
-    "type": "preTaskExecution"
+    "type": "fileEdited",
+    "patterns": ["aidlc-docs/aidlc-state.md"]
   },
   "then": {
     "type": "askAgent",
-    "prompt": "Read the project config from .kiro/steering/project-config.md. Check the Installed Powers Registry. For the current AIDLC unit about to start code generation: 1) If 'project-management' power is registered: find the matching GitHub issue and move it to 'In Progress' on the board. 2) If 'data-engineering' power is registered AND the unit involves Glue/EMR/Athena/Spark: note that this power should be used during code generation. 3) If 'infrastructure' power is registered AND the unit involves CDK/Terraform/CloudFormation: note that this power should be used for IaC validation. Report what powers were activated."
+    "prompt": "The aidlc-state.md file was just updated. Read it and check if the current stage changed to 'Code Generation'. If yes: 1) Read .kiro/steering/project-config.md and check the Installed Powers Registry. 2) If 'project-management' power is registered: find the matching GitHub issue (search for 'aidlc:story' label) and move it to 'In Progress' on the board. 3) If 'data-engineering' power is registered AND the current unit involves Glue/EMR/Athena/Spark: activate that power. 4) If 'infrastructure' power is registered AND the unit involves CDK/Terraform: activate that power. If the stage did NOT change to Code Generation, do nothing."
   }
 }
