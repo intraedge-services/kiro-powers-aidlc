@@ -1,12 +1,13 @@
 {
   "name": "AIDLC Board Sync",
-  "version": "1.0.0",
-  "description": "After an AIDLC task completes, updates the corresponding GitHub issue and project board status.",
+  "version": "2.0.0",
+  "description": "When Code Generation is marked complete in aidlc-state.md, updates the GitHub issue to Done and closes it.",
   "when": {
-    "type": "postTaskExecution"
+    "type": "fileEdited",
+    "patterns": ["aidlc-docs/aidlc-state.md"]
   },
   "then": {
     "type": "askAgent",
-    "prompt": "Read the project config from .kiro/steering/project-config.md. Check if a power is registered with category 'project-management'. If yes, activate that power. Then: 1) Determine which AIDLC unit/story just completed by reading aidlc-docs/aidlc-state.md. 2) Find the matching GitHub issue (search for issues with label 'aidlc:story' whose title contains the story ID). 3) If the completed stage is Code Generation: move the issue to 'Done' on the project board, add a completion comment with summary, and close the issue. 4) If the stage is starting (not complete): move to 'In Progress' and add a status comment. If no project-management power is registered, skip silently."
+    "prompt": "The aidlc-state.md file was just updated. Read it and check if 'Code Generation' was just marked as complete ([x]). If yes: 1) Read .kiro/steering/project-config.md and check if 'project-management' power is registered. 2) If yes, activate that power. 3) Find the matching GitHub issue (search for 'aidlc:story' label matching the completed unit). 4) Move the issue to 'Done' on the project board. 5) Add a completion comment. 6) Close the issue. If Code Generation was NOT just completed, do nothing."
   }
 }
