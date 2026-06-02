@@ -44,6 +44,21 @@ The AI model intelligently assesses what stages are needed based on:
 3. This should only be done ONCE at the start of a new workflow
 4. Do NOT load this file in subsequent interactions to save context space
 
+## MANDATORY: Power Orchestration
+**CRITICAL**: At the START of every AI-DLC workflow, you MUST:
+1. Check if `.kiro/steering/project-config.md` exists in the workspace
+2. If it exists: Read it and parse the **"Installed Powers Registry"** table
+3. Store the registry in context — you will reference it at specific stage transitions below
+4. At each stage marked with **🔌 POWER ORCHESTRATION**, execute the orchestration actions defined in `steering/power-orchestration.md` for that stage
+5. If `.kiro/steering/project-config.md` does NOT exist: Skip all power orchestration silently
+
+**Power Activation Method**: When orchestration rules say "activate a power," use the Kiro Powers tool:
+- Call `action="activate"` with the power name from the registry
+- Then call `action="use"` with the appropriate server/tool as needed
+- If the power is not installed, warn the user and continue
+
+**Error Handling**: Power orchestration failures are NEVER blocking. Log a warning and continue the AIDLC workflow.
+
 # Adaptive Software Development Workflow
 
 ---
@@ -92,19 +107,20 @@ The AI model intelligently assesses what stages are needed based on:
 **Execution**:
 1. **MANDATORY**: Log start of reverse engineering in audit.md
 2. Load all steps from `inception/reverse-engineering.md`
-3. Execute reverse engineering:
+3. 🔌 **POWER ORCHESTRATION**: Check if a power is registered with category `diagrams`. If YES: activate it — it will be used to generate system architecture and component interaction diagrams during this stage.
+4. Execute reverse engineering:
    - Analyze all packages and components
    - Generate a busienss overview of the whole system covering the business transactions
    - Generate architecture documentation
    - Generate code structure documentation
    - Generate API documentation
    - Generate component inventory
-   - Generate Interaction Diagrams depicting how business transactions are implemented across components
+   - Generate Interaction Diagrams depicting how business transactions are implemented across components (use `diagrams` power if activated)
    - Generate technology stack documentation
    - Generate dependencies documentation
 
-4. **Wait for Explicit Approval**: Present detailed completion message (see reverse-engineering.md for message format) - DO NOT PROCEED until user confirms
-5. **MANDATORY**: Log user's response in audit.md with complete raw input
+5. **Wait for Explicit Approval**: Present detailed completion message (see reverse-engineering.md for message format) - DO NOT PROCEED until user confirms
+6. **MANDATORY**: Log user's response in audit.md with complete raw input
 
 ## Requirements Analysis (ALWAYS EXECUTE - Adaptive Depth)
 
@@ -195,6 +211,13 @@ The AI model intelligently assesses what stages are needed based on:
 8. **PART 2 - Generation**: Execute approved plan to generate stories and personas
 9. **Wait for Explicit Approval**: Follow approval format from user-stories.md detailed steps - DO NOT PROCEED until user confirms
 10. **MANDATORY**: Log user's response in audit.md with complete raw input
+11. 🔌 **POWER ORCHESTRATION — After User Stories Approved**: Check if a power is registered with category `project-management`. If YES:
+    - Activate the project-management power
+    - Read the generated `aidlc-docs/inception/user-stories/stories.md`
+    - For each user story: Create a GitHub issue with title `[AIDLC Story {id}] {story title}`, body containing story description + acceptance criteria as checkboxes + traceability, labels `aidlc:story` + feature-area label, assigned to team lead from project-config
+    - Add each issue to the configured project board with status "Todo"
+    - Report to user: "Created {N} issues on the project board. Continue to next stage?"
+    - If power is not installed or activation fails: warn user and continue
 
 ## Workflow Planning (ALWAYS EXECUTE)
 
@@ -295,10 +318,11 @@ The AI model intelligently assesses what stages are needed based on:
 **Execution**:
 1. **MANDATORY**: Log any user input during this stage in audit.md
 2. Load all steps from `construction/functional-design.md`
-3. Execute functional design for this unit
-4. **MANDATORY**: Present standardized 2-option completion message as defined in functional-design.md - DO NOT use emergent 3-option behavior
-5. **Wait for Explicit Approval**: User must choose between "Request Changes" or "Continue to Next Stage" - DO NOT PROCEED until user confirms
-6. **MANDATORY**: Log user's response in audit.md with complete raw input
+3. 🔌 **POWER ORCHESTRATION**: Check if a power is registered with category `diagrams`. If YES: activate it — use it to generate ERD or class diagrams after domain entities are defined in this stage.
+4. Execute functional design for this unit
+5. **MANDATORY**: Present standardized 2-option completion message as defined in functional-design.md - DO NOT use emergent 3-option behavior
+6. **Wait for Explicit Approval**: User must choose between "Request Changes" or "Continue to Next Stage" - DO NOT PROCEED until user confirms
+7. **MANDATORY**: Log user's response in audit.md with complete raw input
 
 ### NFR Requirements (CONDITIONAL, per-unit)
 
@@ -352,10 +376,13 @@ The AI model intelligently assesses what stages are needed based on:
 **Execution**:
 1. **MANDATORY**: Log any user input during this stage in audit.md
 2. Load all steps from `construction/infrastructure-design.md`
-3. Execute infrastructure design for this unit
-4. **MANDATORY**: Present standardized 2-option completion message as defined in infrastructure-design.md - DO NOT use emergent behavior
-5. **Wait for Explicit Approval**: User must choose between "Request Changes" or "Continue to Next Stage" - DO NOT PROCEED until user confirms
-6. **MANDATORY**: Log user's response in audit.md with complete raw input
+3. 🔌 **POWER ORCHESTRATION**: Check the power registry for:
+   - Category `infrastructure`: If registered, activate it — use for IaC patterns, resource configuration, CDK/Terraform/CloudFormation guidance and validation throughout this stage.
+   - Category `diagrams`: If registered, activate it — use to generate deployment architecture diagrams during this stage.
+4. Execute infrastructure design for this unit
+5. **MANDATORY**: Present standardized 2-option completion message as defined in infrastructure-design.md - DO NOT use emergent behavior
+6. **Wait for Explicit Approval**: User must choose between "Request Changes" or "Continue to Next Stage" - DO NOT PROCEED until user confirms
+7. **MANDATORY**: Log user's response in audit.md with complete raw input
 
 ### Code Generation (ALWAYS EXECUTE, per-unit)
 
@@ -368,11 +395,20 @@ The AI model intelligently assesses what stages are needed based on:
 **Execution**:
 1. **MANDATORY**: Log any user input during this stage in audit.md
 2. Load all steps from `construction/code-generation.md`
-3. **PART 1 - Planning**: Create code generation plan with checkboxes, get user approval
-4. **PART 2 - Generation**: Execute approved plan to generate code for this unit
-5. **MANDATORY**: Present standardized 2-option completion message as defined in code-generation.md - DO NOT use emergent behavior
-6. **Wait for Explicit Approval**: User must choose between "Request Changes" or "Continue to Next Stage" - DO NOT PROCEED until user confirms
-7. **MANDATORY**: Log user's response in audit.md with complete raw input
+3. 🔌 **POWER ORCHESTRATION — Code Generation Start**: Check the power registry for:
+   - Category `project-management`: If registered, activate it. Find the GitHub issue matching the current unit/story. Move the issue to "In Progress" on the project board. Add comment: "🔄 AIDLC Stage: Code Generation Started".
+   - Category `data-engineering`: If registered AND the unit involves Glue/EMR/Athena/Spark workloads, activate it — use for code patterns, best practices, and API references during code generation.
+   - Category `infrastructure`: If registered AND the unit involves CDK/Terraform/CloudFormation, activate it — use for IaC patterns and validation during code generation.
+4. **PART 1 - Planning**: Create code generation plan with checkboxes, get user approval
+5. **PART 2 - Generation**: Execute approved plan to generate code for this unit
+6. **MANDATORY**: Present standardized 2-option completion message as defined in code-generation.md - DO NOT use emergent behavior
+7. **Wait for Explicit Approval**: User must choose between "Request Changes" or "Continue to Next Stage" - DO NOT PROCEED until user confirms
+8. **MANDATORY**: Log user's response in audit.md with complete raw input
+9. 🔌 **POWER ORCHESTRATION — Code Generation Complete**: Check if a power is registered with category `project-management`. If YES:
+   - Find the GitHub issue matching the current unit/story
+   - Move the issue to "Done" on the project board
+   - Add comment with implementation summary
+   - Close the issue with state_reason "completed"
 
 ---
 
