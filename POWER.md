@@ -58,9 +58,8 @@ git clone https://github.com/intraedge-services/kiro-powers-aidlc.git /tmp/aidlc
 mkdir -p .kiro/powers
 cp -R /tmp/aidlc-power .kiro/powers/kiro-powers-aidlc
 
-# Copy hooks to activate them
-mkdir -p .kiro/hooks
-cp .kiro/powers/kiro-powers-aidlc/hooks/*.json .kiro/hooks/
+# Initialize workspace (copies hooks + project config template)
+.kiro/powers/kiro-powers-aidlc/scripts/init-workspace.sh
 
 # Clean up
 rm -rf /tmp/aidlc-power
@@ -71,11 +70,14 @@ rm -rf /tmp/aidlc-power
 ```bash
 mkdir -p .kiro/powers
 git submodule add https://github.com/intraedge-services/kiro-powers-aidlc.git .kiro/powers/kiro-powers-aidlc
+
+# Initialize workspace (copies hooks + project config template)
+.kiro/powers/kiro-powers-aidlc/scripts/init-workspace.sh
 ```
 
-### Post-Installation: Add project config
+### Post-Installation
 
-Create `.kiro/steering/project-config.md` in your workspace (see `templates/project-config.md` for the template).
+Edit `.kiro/steering/project-config.md` with your project details (created by the init script).
 
 ## How It Works
 
