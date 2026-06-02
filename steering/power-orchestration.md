@@ -74,6 +74,37 @@ This file is auto-included in every interaction. The orchestration checkpoints b
 
 **Check `diagrams`**: Generate system architecture and component interaction diagrams.
 
+### Build and Test Stage (Construction)
+
+**Trigger**: Build and Test stage begins (after all units complete code generation).
+
+**Check**: Is there a power registered with category `ci-cd`?
+
+**If YES**:
+1. Activate the registered ci-cd power
+2. Check if `.circleci/config.yml` (or equivalent CI config) exists or was generated
+3. If CI config exists: Validate it using the power's config validation tool (`config_helper`)
+4. If CI config was generated during Code Generation: Validate and fix any issues
+5. If no CI config exists but new services were created: Suggest appropriate pipeline template
+6. Check latest pipeline status for the current branch (`get_latest_pipeline_status`)
+7. Report validation results and pipeline status to user
+
+**If NO**: Skip, proceed with standard build and test instructions.
+
+### Code Generation Stage — CI/CD (Construction)
+
+**Trigger**: Code Generation stage begins AND the unit involves creating new services or deployment pipelines.
+
+**Check**: Is there a power registered with category `ci-cd`?
+
+**If YES**:
+1. Activate the ci-cd power
+2. Use it to provide CI/CD pipeline templates appropriate for the tech stack
+3. Generate or update `.circleci/config.yml` (or equivalent) based on the service being built
+4. Validate the generated config before finalizing
+
+**If NO**: Skip, generate CI configs manually if needed.
+
 ## Registry Parsing Rules
 
 The project-config.md contains a table:

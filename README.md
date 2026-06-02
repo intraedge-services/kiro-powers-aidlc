@@ -39,6 +39,7 @@ This power packages two things into one installable unit:
 - `kiro-powers-aws-data-engineering` — Glue/EMR/Athena patterns during code generation
 - `aws-infrastructure-as-code` — CDK/Terraform/CloudFormation guidance during infrastructure design
 - `kiro-powers-diagrams` — Architecture and component diagrams
+- `kiro-powers-circleci` — CI/CD pipeline validation and templates during build & test
 
 ## Installation
 

@@ -26,6 +26,7 @@ How to set up the per-project configuration that drives AIDLC power orchestratio
 | `data-engineering` | Glue/EMR/Athena patterns | `kiro-powers-aws-data-engineering` |
 | `infrastructure` | CDK/TF/CFN guidance | `aws-infrastructure-as-code` |
 | `diagrams` | Architecture visuals | `kiro-powers-diagrams` |
+| `ci-cd` | Pipeline validation, templates | `kiro-powers-circleci` |
 | `security` | Security scanning | (future) |
 | `testing` | Test generation | (future) |
 

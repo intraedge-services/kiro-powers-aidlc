@@ -108,9 +108,11 @@ When you start a development request, the workflow guides you through:
 |---|---|---|
 | After User Stories | `project-management` | Create GitHub issues, add to board in "Todo" |
 | Code Gen starts | `project-management` | Move issue to "In Progress" |
+| Code Gen starts | `ci-cd` | Provide pipeline templates for new services |
 | Code Gen completes | `project-management` | Move issue to "Done", close issue |
 | Infrastructure Design | `infrastructure` | Activate IaC power for CDK/TF guidance |
 | Infrastructure Design | `diagrams` | Generate deployment architecture diagrams |
+| Build and Test | `ci-cd` | Validate CI configs, check pipeline status |
 | Code Gen (data jobs) | `data-engineering` | Activate for Glue/EMR/Athena patterns |
 
 ## Available Steering Files

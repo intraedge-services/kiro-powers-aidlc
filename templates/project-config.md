@@ -42,6 +42,7 @@ inclusion: always
 | data-engineering | kiro-powers-aws-data-engineering | Code gen for Glue, EMR, Athena workloads |
 | infrastructure | aws-infrastructure-as-code | Infrastructure design, CDK/TF code generation |
 | diagrams | kiro-powers-diagrams | Architecture docs, infra design, functional design |
+| ci-cd | kiro-powers-circleci | Build & test validation, code gen pipeline templates |
 
 ## Extensions
 

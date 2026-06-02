@@ -399,6 +399,7 @@ The AI model intelligently assesses what stages are needed based on:
    - Category `project-management`: If registered, activate it. Find the GitHub issue matching the current unit/story. Move the issue to "In Progress" on the project board. Add comment: "🔄 AIDLC Stage: Code Generation Started".
    - Category `data-engineering`: If registered AND the unit involves Glue/EMR/Athena/Spark workloads, activate it — use for code patterns, best practices, and API references during code generation.
    - Category `infrastructure`: If registered AND the unit involves CDK/Terraform/CloudFormation, activate it — use for IaC patterns and validation during code generation.
+   - Category `ci-cd`: If registered AND the unit involves creating new services or pipelines, activate it — use for CI/CD pipeline templates and configuration generation.
 4. **PART 1 - Planning**: Create code generation plan with checkboxes, get user approval
 5. **PART 2 - Generation**: Execute approved plan to generate code for this unit
 6. **MANDATORY**: Present standardized 2-option completion message as defined in code-generation.md - DO NOT use emergent behavior
@@ -416,7 +417,13 @@ The AI model intelligently assesses what stages are needed based on:
 
 1. **MANDATORY**: Log any user input during this phase in audit.md
 2. Load all steps from `construction/build-and-test.md`
-3. Generate comprehensive build and test instructions:
+3. 🔌 **POWER ORCHESTRATION — Build and Test**: Check the power registry for:
+   - Category `ci-cd`: If registered, activate it. Use it to:
+     - Validate any generated `.circleci/config.yml` or CI pipeline configurations
+     - Provide pipeline templates if new services need CI/CD setup
+     - Check latest pipeline status for the current branch
+   - Category `project-management`: If registered, find matching GitHub issues for completed units. Move to "In Progress" and add comment: "🔄 AIDLC Stage: Build & Test Started".
+4. Generate comprehensive build and test instructions:
    - Build instructions for all units
    - Unit test execution instructions
    - Integration test instructions (test interactions between units)
