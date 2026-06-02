@@ -69,16 +69,15 @@ git submodule add https://github.com/intraedge-services/kiro-powers-aidlc.git .k
 cp .kiro/powers/kiro-powers-aidlc/hooks/*.json .kiro/hooks/
 ```
 
-### Post-Installation: Add project config
+### Post-Installation: Initialize your workspace
 
-Copy the template to your workspace steering directory:
+Run the init script from your project root:
 
 ```bash
-mkdir -p .kiro/steering
-cp .kiro/powers/kiro-powers-aidlc/templates/project-config.md .kiro/steering/project-config.md
+.kiro/powers/kiro-powers-aidlc/scripts/init-workspace.sh
 ```
 
-Edit `.kiro/steering/project-config.md` with your project's details (GitHub org, repo, board number, team, tech stack, and which powers you have installed).
+This copies the project-config template and hooks into your workspace. Then edit `.kiro/steering/project-config.md` with your project's details (GitHub org, repo, board number, team, tech stack, and which powers you have installed).
 
 See `examples/cos-project-config.md` for a real-world example.
 
@@ -143,6 +142,8 @@ kiro-powers-aidlc/
 ├── package.json                      # Power metadata (v2.0.0)
 ├── LICENSE                           # MIT
 ├── README.md                         # This file
+├── scripts/
+│   └── init-workspace.sh            # Run after install to set up workspace
 ├── steering/
 │   ├── core-workflow.md              # Full AIDLC workflow rules
 │   ├── power-orchestration.md        # Multi-power coordination
