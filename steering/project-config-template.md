@@ -13,7 +13,7 @@ How to set up the per-project configuration that drives AIDLC power orchestratio
 | Field | Example | Purpose |
 |-------|---------|--------|
 | GitHub Org | `intraedge-services` | Target org for issue creation |
-| GitHub Repo | `aws-cos-data-pipeline` | Target repo for issues |
+| GitHub Repo | `my-project` | Target repo for issues |
 | Project Board Number | `7` | GitHub Projects V2 board number |
 | Default Branch | `main` | For PR creation |
 | Lead | `sukrit007` | Default issue assignee |

@@ -75,7 +75,7 @@ git submodule add https://github.com/intraedge-services/kiro-powers-aidlc.git .k
 
 Edit `.kiro/steering/project-config.md` with your project's details (GitHub org, repo, board number, team, tech stack, and which powers you have installed).
 
-See `examples/cos-project-config.md` for a real-world example.
+See `examples/` for a real-world example.
 
 ## Usage
 
@@ -181,7 +181,7 @@ kiro-powers-aidlc/
 ├── templates/
 │   └── project-config.md            # Copy to .kiro/steering/
 └── examples/
-    └── cos-project-config.md         # Real-world example config
+    └── sample-project-config.md      # Real-world example config
 ```
 
 ## Configuration

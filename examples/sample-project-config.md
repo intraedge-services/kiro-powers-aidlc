@@ -1,21 +1,21 @@
 ---
 inclusion: always
 ---
-# Project Configuration — City of Scottsdale Data Pipeline
+# Project Configuration — Sample Data Pipeline
 
 ## Project Identity
 
-- **Name**: COS Data Pipeline
+- **Name**: Sample Data Pipeline
 - **GitHub Org**: intraedge-services
-- **GitHub Repo**: aws-cos-data-pipeline
+- **GitHub Repo**: aws-data-pipeline
 - **Project Board Number**: 7
 - **Default Branch**: main
 
 ## Team
 
-- **Lead**: sukrit007
-- **Developers**: NileshDeshmukh27, Sangram
-- **Reviewers**: sukrit007
+- **Lead**: team-lead
+- **Developers**: developer1, developer2
+- **Reviewers**: team-lead
 
 ## Tech Stack
 
@@ -41,10 +41,11 @@ inclusion: always
 | data-engineering | kiro-powers-aws-data-engineering | Code gen for Glue jobs, Athena queries, EMR clusters |
 | infrastructure | aws-infrastructure-as-code | Infrastructure design, CDK construct generation |
 | diagrams | kiro-powers-diagrams | Architecture docs, pipeline flow diagrams |
+| ci-cd | kiro-powers-circleci | Build & test validation, pipeline templates |
 
 ## Extensions
 
 | Extension | Enabled | Notes |
 |-----------|---------|-------|
 | security-baseline | yes | Lake Formation, IAM least-privilege |
-| compliance | no | Not required for COS |
+| compliance | no | Enable for regulated industries |
