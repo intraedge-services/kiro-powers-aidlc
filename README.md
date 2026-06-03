@@ -26,6 +26,7 @@ This power packages two things into one installable unit:
 | Per-project config via steering | ❌ | ✅ |
 | Hooks for stage transitions | ❌ | ✅ |
 | Auto-activate CI/CD power (CircleCI) | ❌ | ✅ |
+| Python quality gates (testing, linting, security) | ❌ | ✅ |
 
 ## Prerequisites
 
@@ -99,6 +100,27 @@ The `spec-to-issues` hook is user-triggered — after AIDLC generates user stori
 - `pre-code-gen` fires before each task execution to move board items and activate relevant powers
 - `aidlc-board-sync` fires after task completion to update board status
 
+## Python Quality Gates
+
+When working on Python projects, the power automatically enforces quality gates during Code Generation and Build & Test stages. This is activated conditionally — only when `*.py` files are in context.
+
+| Gate | Tool | What It Enforces |
+|------|------|-----------------|
+| Unit Testing | pytest + pytest-cov | Test structure, fixtures, 80% coverage minimum |
+| Linting & Formatting | Ruff | Style, imports, naming, auto-fix, consistent formatting |
+| Security — Static | Bandit | SQL injection, hardcoded secrets, insecure API usage |
+| Security — Dependencies | pip-audit | Known CVEs in installed packages |
+| Type Checking | mypy | Type annotations, strict mode for new code |
+
+The steering file also provides:
+- `pyproject.toml` configuration blocks ready to paste
+- CI pipeline template snippet for quality gate jobs
+- Pre-commit hook configuration
+- Dev dependency list
+- Failure policy (what blocks vs. what warns)
+
+See `steering/python-quality-gates.md` for full details.
+
 ## Architecture
 
 ```
@@ -110,6 +132,7 @@ The `spec-to-issues` hook is user-triggered — after AIDLC generates user stori
 │  • core-workflow.md          → Full AIDLC stage rules    │
 │  • power-orchestration.md   → When to call other powers  │
 │  • github-integration.md    → Spec→Issues, board sync    │
+│  • python-quality-gates.md  → Python testing/lint/sec    │
 │  • project-config-template  → Setup guide                │
 │                                                          │
 │  Workflows (24 files):                                   │
@@ -144,6 +167,7 @@ kiro-powers-aidlc/
 │   ├── core-workflow.md              # Full AIDLC workflow rules
 │   ├── power-orchestration.md        # Multi-power coordination
 │   ├── github-integration.md         # GitHub issue/board integration
+│   ├── python-quality-gates.md       # Python: pytest, ruff, bandit, pip-audit, mypy
 │   └── project-config-template.md    # Config setup guide
 ├── workflows/
 │   ├── common/                       # Shared workflow rules

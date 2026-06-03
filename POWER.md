@@ -122,6 +122,7 @@ When you start a development request, the workflow guides you through:
 - `core-workflow.md` — Main workflow rules (always loaded)
 - `power-orchestration.md` — When and how to activate registered powers
 - `github-integration.md` — Spec-to-issues and board sync logic
+- `python-quality-gates.md` — Python unit testing, linting, security scans (loaded when `*.py` files are in context)
 - `project-config-template.md` — Template for per-project configuration
 
 ## Available Workflow Files

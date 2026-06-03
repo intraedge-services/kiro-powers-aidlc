@@ -27,8 +27,9 @@ How to set up the per-project configuration that drives AIDLC power orchestratio
 | `infrastructure` | CDK/TF/CFN guidance | `aws-infrastructure-as-code` |
 | `diagrams` | Architecture visuals | `kiro-powers-diagrams` |
 | `ci-cd` | Pipeline validation, templates | `kiro-powers-circleci` |
-| `security` | Security scanning | (future) |
-| `testing` | Test generation | (future) |
+| `security` | Security scanning (bandit, pip-audit, semgrep) | (future) |
+| `testing` | Test generation and coverage enforcement | (future) |
+| `quality-gates` | Linting, formatting, type checking | (future) |
 
 ## Adding Custom Categories
 
