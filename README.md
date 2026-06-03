@@ -25,6 +25,7 @@ This power packages two things into one installable unit:
 | Auto-activate Diagrams power | ❌ | ✅ |
 | Per-project config via steering | ❌ | ✅ |
 | Hooks for stage transitions | ❌ | ✅ |
+| Auto-activate CI/CD power (CircleCI) | ❌ | ✅ |
 
 ## Prerequisites
 
@@ -72,13 +73,7 @@ git submodule add https://github.com/intraedge-services/kiro-powers-aidlc.git .k
 
 ### Post-Installation: Initialize your workspace
 
-Run the init script from your project root:
-
-```bash
-.kiro/powers/kiro-powers-aidlc/scripts/init-workspace.sh
-```
-
-This copies the project-config template and hooks into your workspace. Then edit `.kiro/steering/project-config.md` with your project's details (GitHub org, repo, board number, team, tech stack, and which powers you have installed).
+Edit `.kiro/steering/project-config.md` with your project's details (GitHub org, repo, board number, team, tech stack, and which powers you have installed).
 
 See `examples/cos-project-config.md` for a real-world example.
 
@@ -129,10 +124,10 @@ The `spec-to-issues` hook is user-triggered — after AIDLC generates user stori
 │  • aidlc-board-sync.json    → Auto: sync board status    │
 ├─────────────────────────────────────────────────────────┤
 │                    Orchestrates                           │
-├──────────┬──────────┬──────────────┬────────────────────┤
-│ GitHub   │ Data Eng │ Infra (IaC)  │ Diagrams           │
-│ Power    │ Power    │ Power        │ Power              │
-└──────────┴──────────┴──────────────┴────────────────────┘
+├──────────┬──────────┬──────────────┬──────────┬─────────┤
+│ GitHub   │ Data Eng │ Infra (IaC)  │ Diagrams │ CircleCI│
+│ Power    │ Power    │ Power        │ Power    │ Power   │
+└──────────┴──────────┴──────────────┴──────────┴─────────┘
 ```
 
 ## Directory Structure
