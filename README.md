@@ -44,7 +44,17 @@ This power packages two things into one installable unit:
 
 ## Installation
 
-### Option 1: Copy to your project (recommended for teams)
+### Option 1: Install from GitHub URL (recommended)
+
+Kiro supports installing custom powers directly from a public GitHub URL:
+
+1. Open the **Powers panel** → click **"Add power from GitHub"**
+2. Enter the repository URL: `https://github.com/intraedge-services/kiro-powers-aidlc`
+3. Click **Install**
+
+That's it — Kiro handles the rest. The power will be available immediately.
+
+### Option 2: Copy to your project (for teams needing local control)
 
 ```bash
 # Clone this repo
@@ -61,7 +71,7 @@ cp -R /tmp/aidlc-power .kiro/powers/kiro-powers-aidlc
 rm -rf /tmp/aidlc-power
 ```
 
-### Option 2: Git submodule
+### Option 3: Git submodule
 
 ```bash
 mkdir -p .kiro/powers
