@@ -18,6 +18,8 @@ This power packages two things into one installable unit:
 | Quality gates & approvals | ✅ | ✅ |
 | Full audit trail | ✅ | ✅ |
 | Content validation | ✅ | ✅ |
+| Pre-workflow analysis mode (`/aidlc:analyze`) | ❌ | ✅ |
+| In-workflow explore mode (`/aidlc:explore`) | ❌ | ✅ |
 | GitHub issue creation from stories | ❌ | ✅ |
 | Project board sync (Todo → In Progress → Done) | ❌ | ✅ |
 | Auto-activate Data Engineering power | ❌ | ✅ |
@@ -85,11 +87,41 @@ Once installed, start any development request and the AI-DLC workflow activates 
 > "Using AI-DLC, build me a data ingestion pipeline for CSV files"
 
 The workflow will:
-1. Detect your workspace (greenfield vs brownfield)
-2. Gather requirements with adaptive depth
-3. Plan which stages to execute
-4. Guide you through design and implementation
-5. Sync progress to your GitHub board (if configured)
+1. Display the welcome message
+2. **Offer optional project analysis** — explore requirements, domain, and constraints before building
+3. Detect your workspace (greenfield vs brownfield)
+4. Gather requirements with adaptive depth
+5. Plan which stages to execute
+6. Guide you through design and implementation
+7. Sync progress to your GitHub board (if configured)
+
+### Explore & Analyze Modes
+
+The power includes two thinking-partner modes that can be invoked at any time:
+
+| Mode | Command | Purpose |
+|------|---------|---------|
+| **Analyze** | `/aidlc:analyze` | Pre-workflow deep-dive into project requirements, domain, and constraints. Offered automatically before the AIDLC cycle begins. |
+| **Explore** | `/aidlc:explore` | In-workflow thinking partner for investigating problems, comparing approaches, or clarifying decisions during or between AIDLC phases. |
+
+**Analysis mode** (`/aidlc:analyze`) is an optional pre-workflow step that helps you:
+- Understand the problem domain deeply
+- Clarify requirements and scope before committing
+- Investigate technical constraints and landscape
+- Compare architectural approaches
+- Surface risks and unknowns
+
+When you start the AIDLC workflow, you'll be asked:
+> 🔬 **Yes, analyze first** — Enter analysis mode to explore the project landscape  
+> 🚀 **No, proceed directly** — Start the AIDLC workflow immediately
+
+**Explore mode** (`/aidlc:explore`) can be used anytime during the lifecycle:
+- Stuck between phases? Explore to clarify the next step
+- Rethinking a decision mid-construction? Explore alternatives
+- Unsure if a phase should be included? Think it through
+- Want to compare technology options? Brainstorm visually
+
+Both modes are for **thinking, not implementing** — they use ASCII diagrams, investigate the codebase, and help map the landscape without writing application code.
 
 ### Manual Triggers
 
@@ -128,6 +160,10 @@ See `steering/python-quality-gates.md` for full details.
 │                  kiro-powers-aidlc                        │
 │              (Orchestrator Power)                         │
 ├─────────────────────────────────────────────────────────┤
+│  Skills & Prompts:                                       │
+│  • aidlc-analyze             → Pre-workflow analysis     │
+│  • aidlc-explore             → In-workflow exploration   │
+│                                                          │
 │  Steering:                                               │
 │  • core-workflow.md          → Full AIDLC stage rules    │
 │  • power-orchestration.md   → When to call other powers  │
@@ -161,6 +197,13 @@ kiro-powers-aidlc/
 ├── package.json                      # Power metadata (v2.0.0)
 ├── LICENSE                           # MIT
 ├── README.md                         # This file
+├── .kiro/
+│   ├── prompts/
+│   │   ├── aidlc-analyze.prompt.md   # Pre-workflow analysis prompt
+│   │   └── aidlc-explore.prompt.md   # In-workflow explore prompt
+│   └── skills/
+│       ├── aidlc-analyze/SKILL.md    # Analysis mode skill (optional pre-step)
+│       └── aidlc-explore/SKILL.md    # Explore mode skill (during workflow)
 ├── scripts/
 │   └── init-workspace.sh            # Run after install to set up workspace
 ├── steering/
