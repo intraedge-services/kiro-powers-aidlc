@@ -5,8 +5,9 @@
 #
 # What it does:
 #   1. Copies project-config template to .kiro/steering/
-#   2. Copies hooks to .kiro/hooks/
-#   3. Prints next steps
+#   2. Copies steering files (workflow rules, quality gates, etc.) to .kiro/steering/
+#   3. Copies hooks to .kiro/hooks/
+#   4. Prints next steps
 #
 # Usage:
 #   .kiro/powers/kiro-powers-aidlc/scripts/init-workspace.sh
@@ -36,7 +37,27 @@ else
     echo "✓ Created .kiro/steering/project-config.md"
 fi
 
-# ── Step 2: Hooks ───────────────────────────────────────────
+# ── Step 2: Steering Files ───────────────────────────────────
+STEERING_COPIED=0
+for steering_file in "$POWER_DIR/steering/"*.md; do
+    [ -f "$steering_file" ] || continue
+    STEERING_NAME="$(basename "$steering_file")"
+    # Skip the template guide — it's documentation, not a runtime steering file
+    [ "$STEERING_NAME" = "project-config-template.md" ] && continue
+    if [ -f "$WORKSPACE_ROOT/.kiro/steering/$STEERING_NAME" ]; then
+        echo "✓ .kiro/steering/$STEERING_NAME already exists (skipped)"
+    else
+        cp "$steering_file" "$WORKSPACE_ROOT/.kiro/steering/$STEERING_NAME"
+        echo "✓ Copied steering: $STEERING_NAME"
+        STEERING_COPIED=$((STEERING_COPIED + 1))
+    fi
+done
+
+if [ "$STEERING_COPIED" -eq 0 ]; then
+    echo "✓ All steering files already installed"
+fi
+
+# ── Step 3: Hooks ───────────────────────────────────────────
 mkdir -p "$WORKSPACE_ROOT/.kiro/hooks"
 
 HOOKS_COPIED=0
