@@ -63,6 +63,43 @@ The AI model intelligently assesses what stages are needed based on:
 
 ---
 
+## OPTIONAL: Pre-Workflow Analysis
+
+**CRITICAL**: After displaying the welcome message and BEFORE starting the Inception phase, you MUST ask the user if they want to explore/analyze the project further.
+
+**How to Ask**:
+After the welcome message is displayed, present this prompt to the user:
+
+```markdown
+> **🔍 <u>**PROJECT ANALYSIS (Optional)**</u>**
+>
+> Before we start the development workflow, would you like to explore and analyze your project further?
+>
+> Analysis mode helps you:
+> • Understand the problem domain deeply
+> • Clarify requirements and scope
+> • Investigate technical constraints
+> • Compare architectural approaches
+> • Surface risks and unknowns
+>
+> **Your options:**
+>
+> 🔬 **Yes, analyze first** — Enter analysis mode to explore the project landscape before building
+> 🚀 **No, proceed directly** — Start the AIDLC workflow immediately
+```
+
+**Handling the Response**:
+
+- **If user chooses to analyze**: Activate the `aidlc-analyze` skill. This enters analysis mode — a collaborative, open-ended exploration of the project's requirements, domain, constraints, and landscape. When the user is satisfied, they can exit analysis mode and the AIDLC workflow will resume from the Inception phase.
+
+- **If user chooses to proceed**: Skip analysis and continue directly to the Inception phase (Workspace Detection).
+
+- **If user's intent is already very clear and specific**: You may still offer the analysis option, but present the "proceed directly" option as the recommended default. Example: If the user says "Using AI-DLC, add a login button to the navbar", analysis is likely unnecessary — but always offer the choice.
+
+**Note**: This analysis step is entirely optional and non-blocking. It does NOT produce mandatory artifacts. Any insights captured during analysis will naturally inform the Requirements Analysis stage when the workflow begins.
+
+---
+
 # INCEPTION PHASE
 
 **Purpose**: Planning, requirements gathering, and architectural decisions

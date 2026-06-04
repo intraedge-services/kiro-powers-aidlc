@@ -92,12 +92,13 @@ AI-DLC is a structured yet flexible software development process that adapts to 
 
 ## What Happens Next:
 
-1. **I'll analyze your workspace** to understand if this is a new or existing project
-2. **I'll gather requirements** and ask clarifying questions if needed
-3. **I'll create an execution plan** showing which stages I propose to run and why
-4. **You'll review and approve** the plan (or request changes)
-5. **We'll execute the plan** with checkpoints at each major stage
-6. **You'll get working code** with complete documentation and tests
+1. **I'll offer an optional analysis step** — Explore your project's domain, constraints, and requirements before committing to the workflow
+2. **I'll analyze your workspace** to understand if this is a new or existing project
+3. **I'll gather requirements** and ask clarifying questions if needed
+4. **I'll create an execution plan** showing which stages I propose to run and why
+5. **You'll review and approve** the plan (or request changes)
+6. **We'll execute the plan** with checkpoints at each major stage
+7. **You'll get working code** with complete documentation and tests
 
 The AI-DLC process adapts to:
 - 📋 Your intent clarity and complexity

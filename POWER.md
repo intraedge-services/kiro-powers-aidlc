@@ -85,6 +85,9 @@ Edit `.kiro/steering/project-config.md` with your project details (created by th
 
 When you start a development request, the workflow guides you through:
 
+**🔬 PRE-WORKFLOW** (Optional)
+- Project Analysis — Deep-dive into requirements, domain, and constraints before starting
+
 **🔵 INCEPTION** (What to build & why)
 1. Workspace Detection — Brownfield vs greenfield analysis
 2. Reverse Engineering — Analyze existing code (brownfield only)
