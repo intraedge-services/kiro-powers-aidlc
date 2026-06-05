@@ -23,7 +23,7 @@ This power packages two things into one installable unit:
 | GitHub issue creation from stories | ❌ | ✅ |
 | Project board sync (Todo → In Progress → Done) | ❌ | ✅ |
 | Auto-activate Data Engineering power | ❌ | ✅ |
-| Auto-activate Infrastructure power | ❌ | ✅ |
+| Auto-activate Infrastructure power (AWS CDK Python) | ❌ | ✅ |
 | Auto-activate Diagrams power | ❌ | ✅ |
 | Per-project config via steering | ❌ | ✅ |
 | Hooks for stage transitions | ❌ | ✅ |
@@ -41,7 +41,7 @@ This power packages two things into one installable unit:
 
 **Optional (activated automatically when registered):**
 - `kiro-powers-aws-data-engineering` — Glue/EMR/Athena patterns during code generation
-- `aws-infrastructure-as-code` — CDK/Terraform/CloudFormation guidance during infrastructure design
+- `kiro-powers-aws-cdk-python` ([kiro-powers-aws-iaac](https://github.com/intraedge-services/kiro-powers-aws-iaac)) — CDK/Python infrastructure guidance, template validation, compliance checks during infrastructure design and code generation
 - `kiro-powers-diagrams` — Architecture and component diagrams
 - `kiro-powers-circleci` — CI/CD pipeline validation and templates during build & test
 
@@ -153,6 +153,72 @@ The steering file also provides:
 
 See `steering/python-quality-gates.md` for full details.
 
+## AWS CDK Python Infrastructure Power
+
+When working with AWS infrastructure using Python CDK, the orchestrator automatically integrates the [kiro-powers-aws-iaac](https://github.com/intraedge-services/kiro-powers-aws-iaac) power. This power wraps the official `awslabs.aws-iac-mcp-server` and provides Python CDK-specific tools, validation, and best practices.
+
+### What It Provides
+
+| Capability | Description |
+|------------|-------------|
+| 9 MCP Tools | CDK docs search, Python code samples, best practices, cfn-lint validation, cfn-guard compliance, deployment troubleshooting |
+| Python CDK Steering | Conventions, project structure, construct patterns, anti-patterns |
+| Validation Workflow | synth → cfn-lint → cfn-guard → deploy pipeline |
+| Security Checklist | IAM, encryption, network, data protection, CDK-NAG integration |
+| Project Template | Production-ready scaffold with cdk-nag, pytest, multi-env config |
+
+### Available Tools (via awslabs.aws-iac-mcp-server)
+
+| Tool | Purpose | Credentials |
+|------|---------|-------------|
+| `search_cdk_documentation` | Search CDK API Reference, Best Practices, CDK-NAG rules | No |
+| `search_cdk_samples_and_constructs` | Find Python CDK code samples and constructs | No |
+| `cdk_best_practices` | Get comprehensive CDK best practices guide | No |
+| `search_cloudformation_documentation` | Search CloudFormation resource types and properties | No |
+| `validate_cloudformation_template` | Validate template syntax/schema via cfn-lint | No |
+| `check_cloudformation_template_compliance` | Security compliance check via cfn-guard | No |
+| `read_iac_documentation_page` | Read full AWS documentation pages | No |
+| `get_cloudformation_pre_deploy_validation_instructions` | Pre-deployment change set guidance | No |
+| `troubleshoot_cloudformation_deployment` | Analyze failed stack deployments with CloudTrail | Yes |
+
+### When the Orchestrator Activates It
+
+| AIDLC Stage | What Happens |
+|---|---|
+| Infrastructure Design | Searches CDK docs and samples; provides best practices; validates templates with cfn-lint and cfn-guard |
+| Code Generation (CDK units) | Finds Python CDK reference implementations; validates generated constructs against best practices |
+| Build and Test | Validates synthesized templates; checks compliance; provides pre-deployment validation instructions |
+
+### Registration
+
+Add to your `.kiro/steering/project-config.md` Installed Powers Registry:
+
+```
+| infrastructure | kiro-powers-aws-cdk-python | Infrastructure design, CDK/Python code generation, template validation |
+```
+
+### Prerequisites
+
+| Prerequisite | Purpose | Install |
+|---|---|---|
+| `uv` | Runs the MCP server via `uvx` | https://docs.astral.sh/uv/getting-started/installation/ |
+| Python 3.10+ | CDK application code | `uv python install 3.10` |
+| AWS CDK CLI | Synthesize and deploy stacks | `npm install -g aws-cdk` |
+| AWS Credentials | Only for troubleshooting failed stacks | `aws configure` |
+
+### Installing the Power
+
+```bash
+# Clone the AWS IaC power
+git clone https://github.com/intraedge-services/kiro-powers-aws-iaac.git
+
+# Add to Kiro IDE → Powers panel → "Add power from Local Path"
+# Or copy into your project:
+cp -R kiro-powers-aws-iaac .kiro/powers/kiro-powers-aws-cdk-python
+```
+
+Once installed and registered, the AIDLC orchestrator activates it automatically at the right stages — no manual intervention needed.
+
 ## Architecture
 
 ```
@@ -184,8 +250,8 @@ See `steering/python-quality-gates.md` for full details.
 ├─────────────────────────────────────────────────────────┤
 │                    Orchestrates                           │
 ├──────────┬──────────┬──────────────┬──────────┬─────────┤
-│ GitHub   │ Data Eng │ Infra (IaC)  │ Diagrams │ CircleCI│
-│ Power    │ Power    │ Power        │ Power    │ Power   │
+│ GitHub   │ Data Eng │ AWS CDK      │ Diagrams │ CircleCI│
+│ Power    │ Power    │ Python Power │ Power    │ Power   │
 └──────────┴──────────┴──────────────┴──────────┴─────────┘
 ```
 

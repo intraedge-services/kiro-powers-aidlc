@@ -39,7 +39,7 @@ inclusion: always
 |----------|-----------|------------------|
 | project-management | kiro-powers-github | After user stories, board sync on stage transitions |
 | data-engineering | kiro-powers-aws-data-engineering | Code gen for Glue jobs, Athena queries, EMR clusters |
-| infrastructure | aws-infrastructure-as-code | Infrastructure design, CDK construct generation |
+| infrastructure | kiro-powers-aws-cdk-python | Infrastructure design, CDK construct generation, template validation |
 | diagrams | kiro-powers-diagrams | Architecture docs, pipeline flow diagrams |
 | ci-cd | kiro-powers-circleci | Build & test validation, pipeline templates |
 

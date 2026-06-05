@@ -1,7 +1,7 @@
 ---
 name: kiro-powers-aidlc
 displayName: "AIDLC — AI-Driven Development Lifecycle + Power Orchestration"
-description: "Complete AI-DLC methodology power with integrated project management orchestration. Includes the full adaptive workflow (Inception → Construction → Operations) plus automated GitHub board sync, multi-power coordination, and hooks for seamless team workflows."
+description: "Complete AI-DLC methodology power with integrated project management orchestration. Includes the full adaptive workflow (Inception → Construction → Operations) plus automated GitHub board sync, multi-power coordination, AWS CDK Python infrastructure integration, and hooks for seamless team workflows."
 keywords:
   - aidlc
   - ai-dlc
@@ -17,6 +17,11 @@ keywords:
   - construction
   - github
   - board sync
+  - aws
+  - cdk
+  - infrastructure
+  - cloudformation
+  - python
 author: IntraEdge
 ---
 
@@ -41,7 +46,8 @@ Once installed, saying "Using AI-DLC, build me X" activates the full workflow au
 - **Content validation** rules for generated artifacts
 
 ### From Our Orchestration Layer (the add-on)
-- **Power orchestration** — Automatically activates GitHub, Data Engineering, Infrastructure, or Diagrams powers at the right AIDLC stage
+- **Power orchestration** — Automatically activates GitHub, Data Engineering, AWS CDK Python (Infrastructure), Diagrams, or CI/CD powers at the right AIDLC stage
+- **AWS CDK Python integration** — 9 tools for CDK docs, code samples, template validation, compliance checks, and deployment troubleshooting via `awslabs.aws-iac-mcp-server`
 - **GitHub board sync** — Stories become issues, status moves through Todo → In Progress → Done as work progresses
 - **Hooks** — Automated triggers that fire at stage transitions
 - **Project-config driven** — Per-project configuration via a single steering file
@@ -114,11 +120,51 @@ When you start a development request, the workflow guides you through:
 | After User Stories | `project-management` | Create GitHub issues, add to board in "Todo" |
 | Code Gen starts | `project-management` | Move issue to "In Progress" |
 | Code Gen starts | `ci-cd` | Provide pipeline templates for new services |
+| Code Gen starts | `infrastructure` | CDK docs search, code samples, best-practice validation |
 | Code Gen completes | `project-management` | Move issue to "Done", close issue |
-| Infrastructure Design | `infrastructure` | Activate IaC power for CDK/TF guidance |
+| Infrastructure Design | `infrastructure` | CDK/CFN guidance, template validation, compliance checks |
 | Infrastructure Design | `diagrams` | Generate deployment architecture diagrams |
+| Build and Test | `infrastructure` | Synth validation, cfn-lint, cfn-guard compliance |
 | Build and Test | `ci-cd` | Validate CI configs, check pipeline status |
 | Code Gen (data jobs) | `data-engineering` | Activate for Glue/EMR/Athena patterns |
+
+## Integrated Power: AWS CDK Python (Infrastructure)
+
+When the `infrastructure` category is registered with `kiro-powers-aws-cdk-python` in your project-config, the orchestrator activates the [kiro-powers-aws-iaac](https://github.com/intraedge-services/kiro-powers-aws-iaac) power at relevant AIDLC stages.
+
+### What It Provides
+
+- **9 MCP tools** via `awslabs.aws-iac-mcp-server` — CDK docs search, Python code samples, best practices, cfn-lint validation, cfn-guard compliance, deployment troubleshooting, CloudFormation docs, and page reader
+- **Python CDK steering** — conventions, project structure, construct patterns, anti-patterns
+- **Validation workflow** — synth → cfn-lint → cfn-guard → deploy pipeline
+- **Security checklist** — IAM, encryption, network, data protection, CDK-NAG integration
+- **Project template** — Production-ready scaffold with cdk-nag, pytest, multi-env config
+
+### When It Activates
+
+| AIDLC Stage | Tools Used | Purpose |
+|---|---|---|
+| Infrastructure Design | `search_cdk_documentation`, `cdk_best_practices`, `search_cdk_samples_and_constructs` | Inform infrastructure decisions |
+| Infrastructure Design | `validate_cloudformation_template`, `check_cloudformation_template_compliance` | Validate drafted templates |
+| Code Generation | `search_cdk_samples_and_constructs` (language: python) | Find reference implementations |
+| Code Generation | `cdk_best_practices` | Validate generated CDK code |
+| Build and Test | `validate_cloudformation_template`, `check_cloudformation_template_compliance` | Post-synth validation |
+| Build and Test | `get_cloudformation_pre_deploy_validation_instructions` | Pre-deployment gate |
+
+### Registration
+
+Add to your `.kiro/steering/project-config.md`:
+
+```
+| infrastructure | kiro-powers-aws-cdk-python | Infrastructure design, CDK/Python code generation, template validation |
+```
+
+### Prerequisites
+
+- `uv` installed (for `uvx` to run the MCP server)
+- Python 3.10+
+- AWS CDK CLI (`npm install -g aws-cdk`)
+- AWS credentials only needed for `troubleshoot_cloudformation_deployment`
 
 ## Available Steering Files
 
