@@ -47,6 +47,12 @@ This file is auto-included in every interaction. The orchestration checkpoints b
 **Check `data-engineering`**: If registered AND the unit involves Glue/EMR/Athena/Spark, activate the data-engineering power for code patterns.
 
 **Check `infrastructure`**: If registered AND the unit involves CDK/Terraform/CloudFormation, activate the infrastructure power for IaC validation.
+  - **AWS CDK Python specifics** (`kiro-powers-aws-cdk-python`): When the unit involves Python CDK constructs:
+    1. Use `search_cdk_documentation` to find relevant CDK API references for resources being generated
+    2. Use `search_cdk_samples_and_constructs` with `language: "python"` to find reference implementations
+    3. Use `cdk_best_practices` to validate the generated code follows AWS best practices
+    4. After code generation, use `validate_cloudformation_template` on the synthesized template (if available)
+    5. Use `check_cloudformation_template_compliance` for security compliance validation
 
 ### Code Generation Complete (Construction)
 
@@ -59,6 +65,16 @@ This file is auto-included in every interaction. The orchestration checkpoints b
 **Trigger**: Infrastructure Design stage begins.
 
 **Check `infrastructure`**: Activate for IaC guidance and validation.
+  - **AWS CDK Python specifics** (`kiro-powers-aws-cdk-python`): When the infrastructure involves AWS resources and CDK Python:
+    1. Activate the power using `kiroPowers` action="activate" with powerName `kiro-powers-aws-cdk-python`
+    2. Use `search_cdk_documentation` to find CDK construct documentation for each AWS service being designed
+    3. Use `cdk_best_practices` to inform infrastructure decisions with AWS Well-Architected patterns
+    4. Use `search_cdk_samples_and_constructs` with `language: "python"` to find reusable constructs and patterns
+    5. Use `search_cloudformation_documentation` for underlying CloudFormation resource type details
+    6. After infrastructure design is drafted, use `validate_cloudformation_template` on any generated templates
+    7. Use `check_cloudformation_template_compliance` for security and compliance validation (cfn-guard)
+    8. Use `get_cloudformation_pre_deploy_validation_instructions` to include pre-deployment validation steps in the infrastructure design document
+    9. If troubleshooting a failed stack: Use `troubleshoot_cloudformation_deployment` (requires AWS credentials)
 
 **Check `diagrams`**: Generate deployment architecture diagram.
 
@@ -90,6 +106,16 @@ This file is auto-included in every interaction. The orchestration checkpoints b
 7. Report validation results and pipeline status to user
 
 **If NO**: Skip, proceed with standard build and test instructions.
+
+**Check `infrastructure`**: If registered AND CDK code was generated during Construction:
+  - **AWS CDK Python specifics** (`kiro-powers-aws-cdk-python`):
+    1. Activate the power
+    2. Include `cdk synth` in build instructions to synthesize CloudFormation templates
+    3. Use `validate_cloudformation_template` on the synthesized templates
+    4. Use `check_cloudformation_template_compliance` for security compliance
+    5. Include `cdk diff` instructions for reviewing infrastructure changes
+    6. Use `get_cloudformation_pre_deploy_validation_instructions` for pre-deployment validation
+    7. Add CDK-specific test instructions (snapshot tests, fine-grained assertions)
 
 ### Code Generation Stage — CI/CD (Construction)
 
@@ -125,3 +151,32 @@ The project-config.md contains a table:
 - Issue creation fails: Log error, ask user to retry or skip
 - Board update fails: Log warning, continue (non-blocking)
 - **Never halt AIDLC due to power orchestration failures**
+
+## AWS CDK Python Power — Tool Reference
+
+When the `infrastructure` category is registered with power name `kiro-powers-aws-cdk-python`, the following tools are available via the `awslabs.aws-iac-mcp-server`:
+
+| Tool | Purpose | Credentials Required |
+|------|---------|---------------------|
+| `search_cdk_documentation` | Search CDK API Reference, Best Practices, CDK-NAG rules | No |
+| `search_cdk_samples_and_constructs` | Find Python CDK code samples and constructs | No |
+| `cdk_best_practices` | Get comprehensive CDK best practices guide | No |
+| `search_cloudformation_documentation` | Search CloudFormation resource types and properties | No |
+| `validate_cloudformation_template` | Validate template syntax/schema via cfn-lint | No |
+| `check_cloudformation_template_compliance` | Security compliance check via cfn-guard | No |
+| `read_iac_documentation_page` | Read full AWS documentation pages | No |
+| `get_cloudformation_pre_deploy_validation_instructions` | Pre-deployment change set guidance | No |
+| `troubleshoot_cloudformation_deployment` | Analyze failed stack deployments with CloudTrail | Yes |
+
+### Usage Pattern
+
+```
+1. action="activate", powerName="kiro-powers-aws-cdk-python"
+2. action="use", powerName="kiro-powers-aws-cdk-python", serverName="awslabs.aws-iac-mcp-server", toolName="<tool_name>", arguments={...}
+```
+
+### When NOT to Activate
+
+- Skip if the unit has no infrastructure or AWS components
+- Skip if infrastructure is already fully defined and approved in a previous iteration
+- Skip if the project uses Terraform/Pulumi/other non-CDK IaC (unless CloudFormation validation is still useful)

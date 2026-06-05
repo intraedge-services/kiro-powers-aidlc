@@ -24,7 +24,7 @@ How to set up the per-project configuration that drives AIDLC power orchestratio
 |----------|-------------|---------------|
 | `project-management` | Issues, board, PRs | `kiro-powers-github` |
 | `data-engineering` | Glue/EMR/Athena patterns | `kiro-powers-aws-data-engineering` |
-| `infrastructure` | CDK/TF/CFN guidance | `aws-infrastructure-as-code` |
+| `infrastructure` | CDK/TF/CFN guidance | `kiro-powers-aws-cdk-python` |
 | `diagrams` | Architecture visuals | `kiro-powers-diagrams` |
 | `ci-cd` | Pipeline validation, templates | `kiro-powers-circleci` |
 | `security` | Security scanning (bandit, pip-audit, semgrep) | (future) |
