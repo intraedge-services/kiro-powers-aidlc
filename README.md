@@ -323,6 +323,65 @@ This is a pure methodology + steering power. No MCP servers required.
 
 All project-specific configuration lives in `.kiro/steering/project-config.md` in your workspace. The power reads this at workflow start to determine which powers to orchestrate and where to sync issues.
 
+## Power Orchestration Behavior
+
+### How it works
+
+At the start of every AIDLC workflow, the model reads your `.kiro/steering/project-config.md` and parses the **Installed Powers Registry** table. At each AIDLC stage transition, it checks which registered powers need to be activated and uses their tools for guidance, validation, and compliance.
+
+### When powers are NOT configured or NOT installed
+
+| Situation | Behavior | Impact on Workflow |
+|-----------|----------|--------------------|
+| **Row removed from project-config** (you don't use that category) | Skip silently. No warning, no error. | AIDLC runs normally. Code is generated using the model's own knowledge without external validation. |
+| **Row exists but power NOT installed in Kiro** | Warns: "⚠️ Power '{name}' is registered but not installed. Proceeding without it." | AIDLC continues without that power's validation/guidance. User is nudged to install. |
+| **Row exists, power installed, but activation fails** (MCP error, timeout) | Retries once. If still fails, warns and continues. | Non-blocking. That specific validation step is skipped. |
+| **No project-config.md file at all** | All power orchestration skipped silently. | AIDLC runs as a pure methodology with no power integrations. |
+
+### Key principle
+
+**The AIDLC workflow is always completable regardless of which powers are installed.** Powers enhance quality (validation, compliance checks, best practices, diagrams) but never block progress. The workflow degrades gracefully:
+
+- No `diagrams` power → no architecture diagrams generated, design documents are text-only
+- No `infrastructure` power → CDK/Terraform code generated from model knowledge without cfn-lint/cfn-guard validation
+- No `data-engineering` power → Glue/EMR/Athena code generated without AWS-specific pattern libraries
+- No `project-management` power → no GitHub issues created, no board sync
+- No `ci-cd` power → no pipeline validation, CI configs generated without tool-based verification
+
+### Recommendations for production use
+
+For production projects, we strongly recommend installing all powers you register:
+
+| Category | Why It Matters |
+|----------|---------------|
+| `infrastructure` | Catches security misconfigurations, validates templates before deployment, ensures CDK best practices |
+| `ci-cd` | Validates pipeline syntax, prevents broken deployments |
+| `project-management` | Keeps team visibility into progress, auto-syncs work status |
+| `diagrams` | Produces visual documentation that aids code review and onboarding |
+| `data-engineering` | Provides AWS-specific patterns that reduce Glue/EMR debugging time |
+
+### What to do if you don't need a power
+
+Simply **remove the row** from the Installed Powers Registry table in your `project-config.md`. Don't leave placeholder rows — if the row exists, the workflow treats it as mandatory to activate.
+
+```markdown
+## Minimal example (only GitHub + CDK):
+
+| Category | Power Name | Activate During |
+|----------|-----------|------------------|
+| project-management | kiro-powers-github | After user stories, board sync |
+| infrastructure | kiro-powers-aws-cdk-python | Infrastructure design, code generation |
+```
+
+### Clarification: When does data-engineering power trigger?
+
+The `data-engineering` power only activates for **AWS data processing services** (Glue, EMR, Athena, Spark on EMR). It does NOT trigger for:
+- General Python ML code (scikit-learn, pandas, numpy, PyTorch)
+- Local data processing scripts
+- Non-AWS data pipelines
+
+This is intentional — the power provides AWS-specific tools that are irrelevant for general Python work.
+
 ## Credits
 
 - Core AI-DLC methodology: [awslabs/aidlc-workflows](https://github.com/awslabs/aidlc-workflows) (MIT-0)

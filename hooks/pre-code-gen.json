@@ -1,13 +1,13 @@
 {
-  "name": "AIDLC Pre-Code Generation",
-  "version": "2.1.0",
-  "description": "When aidlc-state.md is updated to Code Generation stage, activates relevant powers (GitHub, Data Engineering, AWS CDK Python, CI/CD) and moves board items.",
+  "name": "AIDLC Stage Transition — Power Orchestration",
+  "version": "3.0.0",
+  "description": "When aidlc-state.md is updated, detects the current stage and activates ALL relevant powers per the orchestration rules. Covers Infrastructure Design, Code Generation, Functional Design, and Build & Test stages.",
   "when": {
     "type": "fileEdited",
     "patterns": ["aidlc-docs/aidlc-state.md"]
   },
   "then": {
     "type": "askAgent",
-    "prompt": "The aidlc-state.md file was just updated. Read it and check if the current stage changed to 'Code Generation'. If yes: 1) Read .kiro/steering/project-config.md and check the Installed Powers Registry. 2) If 'project-management' power is registered: find the matching GitHub issue (search for 'aidlc:story' label) and move it to 'In Progress' on the board. 3) If 'data-engineering' power is registered AND the current unit involves Glue/EMR/Athena/Spark: activate that power. 4) If 'infrastructure' power is registered AND the unit involves CDK/Terraform/CloudFormation: activate that power (kiro-powers-aws-cdk-python). Use search_cdk_samples_and_constructs for reference implementations and cdk_best_practices for validation. 5) If 'ci-cd' power is registered AND the unit involves new services or pipelines: activate that power. If the stage did NOT change to Code Generation, do nothing."
+    "prompt": "The aidlc-state.md file was just updated. Read it and determine which stage is NOW active (in_progress or just started). Then read .kiro/steering/project-config.md and parse the 'Installed Powers Registry' table. Based on the CURRENT ACTIVE STAGE, you MUST activate the relevant powers:\n\n**Infrastructure Design stage**:\n- Category 'infrastructure': MUST activate. Use search_cdk_documentation, cdk_best_practices, search_cdk_samples_and_constructs for IaC guidance. After design is drafted, use validate_cloudformation_template and check_cloudformation_template_compliance.\n- Category 'diagrams': Activate to generate deployment architecture diagrams.\n\n**Code Generation stage**:\n- Category 'project-management': Find matching GitHub issue, move to 'In Progress'.\n- Category 'infrastructure': If unit involves CDK/Terraform/CloudFormation, MUST activate. Use search_cdk_samples_and_constructs for reference implementations, cdk_best_practices for validation.\n- Category 'data-engineering': If unit involves Glue/EMR/Athena/Spark, activate for code patterns.\n- Category 'ci-cd': If unit involves new services or pipelines, activate for pipeline templates.\n\n**Functional Design stage**:\n- Category 'diagrams': Activate to generate ERD or class diagrams after domain entities are defined.\n\n**Build and Test stage**:\n- Category 'infrastructure': If CDK/IaC code was generated, MUST activate. Use validate_cloudformation_template and check_cloudformation_template_compliance on synthesized templates.\n- Category 'ci-cd': Activate to validate CI configs and check pipeline status.\n- Category 'project-management': Find matching issues, update status.\n\nIf the stage is NOT one of the above, or no relevant powers are registered, do nothing. Report which powers were activated and what was done."
   }
 }
