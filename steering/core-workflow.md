@@ -57,6 +57,20 @@ The AI model intelligently assesses what stages are needed based on:
 - Then call `action="use"` with the appropriate server/tool as needed
 - If the power is not installed, warn the user and continue
 
+**CRITICAL — NEVER SKIP ORCHESTRATION**: You MUST NOT generate infrastructure code (CDK, Terraform, CloudFormation), CI/CD pipelines, or data engineering code directly without first ATTEMPTING to activate the registered power for that category. Writing IaC code without activating the `infrastructure` power is a VIOLATION of the workflow rules, even if you believe you can produce the code correctly from your own knowledge. The power provides validation, best practices, and compliance checks that direct generation cannot replicate.
+
+**Exception — Power Not Available**: If a power activation fails because the power is NOT INSTALLED in the user's Kiro environment:
+1. Warn the user: "⚠️ Power '{name}' is registered in project-config but not installed. I will proceed without its validation/guidance. Consider installing it for production quality."
+2. Continue the AIDLC workflow — generate the code using your own knowledge
+3. This is the ONLY valid reason to skip orchestration for a registered power
+4. If the power IS installed but activation fails for other reasons (network, MCP error): retry once, then warn and continue
+
+**Orchestration Violation Self-Check**: Before writing ANY code in a unit, ask yourself:
+1. Does this unit involve infrastructure/IaC? → Is the `infrastructure` power activated?
+2. Does this unit involve Glue/EMR/Athena? → Is the `data-engineering` power activated?
+3. Does this unit involve CI/CD pipelines? → Is the `ci-cd` power activated?
+4. If the answer to any above is YES but power is NOT activated → STOP and activate it NOW.
+
 **Error Handling**: Power orchestration failures are NEVER blocking. Log a warning and continue the AIDLC workflow.
 
 # Adaptive Software Development Workflow
@@ -413,9 +427,16 @@ After the welcome message is displayed, present this prompt to the user:
 **Execution**:
 1. **MANDATORY**: Log any user input during this stage in audit.md
 2. Load all steps from `construction/infrastructure-design.md`
-3. 🔌 **POWER ORCHESTRATION**: Check the power registry for:
-   - Category `infrastructure`: If registered, activate it — use for IaC patterns, resource configuration, CDK/Terraform/CloudFormation guidance and validation throughout this stage.
+3. 🔌 **POWER ORCHESTRATION — MANDATORY FOR INFRASTRUCTURE**: Before doing ANY infrastructure design work, you MUST check the power registry:
+   - Category `infrastructure`: If registered, you MUST activate it BEFORE designing infrastructure. This is NON-NEGOTIABLE.
+     - Call `action="activate"` with the registered power name (e.g., `kiro-powers-aws-cdk-python`)
+     - Use `search_cdk_documentation` to find CDK API references for each AWS service being designed
+     - Use `cdk_best_practices` to inform infrastructure decisions
+     - Use `search_cdk_samples_and_constructs` (language: "python") to find reference implementations
+     - After drafting the infrastructure design, use `validate_cloudformation_template` on any generated templates
+     - Use `check_cloudformation_template_compliance` for security compliance
    - Category `diagrams`: If registered, activate it — use to generate deployment architecture diagrams during this stage.
+   - **SELF-CHECK**: If you are about to write infrastructure design without having activated the infrastructure power, STOP. Go back and activate it first.
 4. Execute infrastructure design for this unit
 5. **MANDATORY**: Present standardized 2-option completion message as defined in infrastructure-design.md - DO NOT use emergent behavior
 6. **Wait for Explicit Approval**: User must choose between "Request Changes" or "Continue to Next Stage" - DO NOT PROCEED until user confirms
@@ -432,11 +453,12 @@ After the welcome message is displayed, present this prompt to the user:
 **Execution**:
 1. **MANDATORY**: Log any user input during this stage in audit.md
 2. Load all steps from `construction/code-generation.md`
-3. 🔌 **POWER ORCHESTRATION — Code Generation Start**: Check the power registry for:
+3. 🔌 **POWER ORCHESTRATION — Code Generation Start (MANDATORY CHECK)**: Before generating ANY code, check the power registry:
    - Category `project-management`: If registered, activate it. Find the GitHub issue matching the current unit/story. Move the issue to "In Progress" on the project board. Add comment: "🔄 AIDLC Stage: Code Generation Started".
-   - Category `data-engineering`: If registered AND the unit involves Glue/EMR/Athena/Spark workloads, activate it — use for code patterns, best practices, and API references during code generation.
-   - Category `infrastructure`: If registered AND the unit involves CDK/Terraform/CloudFormation, activate it — use for IaC patterns and validation during code generation.
+   - Category `data-engineering`: If registered AND the unit involves Glue/EMR/Athena/Spark workloads, you MUST activate it — use for code patterns, best practices, and API references during code generation.
+   - Category `infrastructure`: If registered AND the unit involves CDK/Terraform/CloudFormation/IaC code, you MUST activate it — use for IaC patterns, code samples, and validation during code generation. Do NOT write CDK/Terraform code without activating this power first.
    - Category `ci-cd`: If registered AND the unit involves creating new services or pipelines, activate it — use for CI/CD pipeline templates and configuration generation.
+   - **SELF-CHECK**: Before writing code, verify: "Have I activated ALL powers relevant to this unit's technology?"
 4. **PART 1 - Planning**: Create code generation plan with checkboxes, get user approval
 5. **PART 2 - Generation**: Execute approved plan to generate code for this unit
 6. **MANDATORY**: Present standardized 2-option completion message as defined in code-generation.md - DO NOT use emergent behavior
