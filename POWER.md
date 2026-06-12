@@ -174,6 +174,35 @@ Add to your `.kiro/steering/project-config.md`:
 - `python-quality-gates.md` — Python unit testing, linting, security scans (loaded when `*.py` files are in context)
 - `project-config-template.md` — Template for per-project configuration
 
+## Extensions Framework
+
+AI-DLC supports an extension system that layers additional blocking rules on top of the core workflow. Extensions are opt-in (user chooses during Requirements Analysis) or always-enforced.
+
+### How Extensions Work
+
+1. At workflow start, the agent scans `workflows/extensions/` and loads `*.opt-in.md` files
+2. During Requirements Analysis, each opt-in prompt is presented to the user
+3. When opted in → corresponding rules file is loaded as **blocking constraints**
+4. At each construction stage, the agent verifies compliance with active extension rules before allowing the stage to complete
+5. Extensions without a matching `*.opt-in.md` are always enforced
+
+### Built-in Extensions
+
+| Extension | Category | Description |
+|-----------|----------|-------------|
+| `security-baseline` | security | OWASP-aligned security practices (input validation, auth, secrets, encryption, logging, dependencies, error handling) |
+| `property-based-testing` | testing | Property-based testing rules for robust test coverage (Hypothesis, fast-check, jqwik) |
+| `resiliency-baseline` | resiliency | AWS Well-Architected Reliability Pillar best practices (availability targets, failure modes, retries, graceful degradation, observability) |
+
+### Adding Custom Extensions
+
+1. Create a directory under `workflows/extensions/<category>/<name>/`
+2. Add a rules file (`<name>.md`) with `## Rule <PREFIX-NN>: <Title>` headings containing Rule + Verification sections
+3. Add a matching `<name>.opt-in.md` file (omit for always-enforced extensions)
+4. Rule IDs must be unique across all loaded extensions
+
+See `workflows/extensions/README.md` for full documentation.
+
 ## Available Workflow Files
 
 Loaded on-demand via `readFile` during workflow execution:

@@ -90,7 +90,41 @@ Analyze whatever the user has provided:
 
 **When in doubt, ask questions** - incomplete requirements lead to poor implementations.
 
-### Step 6: Generate Clarifying Questions (PROACTIVE APPROACH)
+### Step 6: Extension Opt-In (If Extensions Loaded)
+
+**IF `workflows/extensions/` was scanned and `*.opt-in.md` files were found** during workflow initialization:
+
+1. For each loaded opt-in prompt (from the `ACTIVE_EXTENSIONS` scan), present the question to the user
+2. Include ALL extension opt-in questions together in `aidlc-docs/inception/requirements/extension-opt-in.md`
+3. Format:
+   ```markdown
+   # Extension Opt-In Questions
+
+   The following optional extensions are available for this project. Please answer each to configure your workflow.
+
+   ---
+
+   {content from each *.opt-in.md file, separated by ---}
+   ```
+4. Wait for user to provide answers (all `[Answer]:` tags filled)
+5. For each answer:
+   - **If "A" (Yes)**: Load the corresponding rules file (strip `.opt-in.md`, append `.md`) and add to `ACTIVE_EXTENSIONS`
+   - **If "B" (No)**: Skip that extension — do NOT load the rules file
+   - **If "X" (Other)**: Read the user's custom response and determine if partial rules apply; document decision in audit.md
+6. Log the extension decisions in `audit.md`:
+   ```markdown
+   ## Extension Opt-In Decisions
+   **Timestamp**: [ISO timestamp]
+   | Extension | User Choice | Status |
+   |-----------|-------------|--------|
+   | security-baseline | A (Yes) | ACTIVE — rules loaded |
+   | property-based-testing | B (No) | SKIPPED |
+   | resiliency-baseline | A (Yes) | ACTIVE — rules loaded |
+   ```
+
+**IF no extensions were found**: Skip this step entirely (no message to user).
+
+### Step 7: Generate Clarifying Questions (PROACTIVE APPROACH)
    - **ALWAYS** create `aidlc-docs/inception/requirements/requirement-verification-questions.md` unless requirements are exceptionally clear and complete
    - Ask questions about ANY missing, unclear, or ambiguous areas
    - Focus on functional requirements, non-functional requirements, user scenarios, and business context
@@ -103,7 +137,7 @@ Analyze whatever the user has provided:
    - **MANDATORY**: Analyze ALL answers for ambiguities and create follow-up questions if needed
    - **MANDATORY**: Keep asking questions until ALL ambiguities are resolved OR user explicitly asks to proceed
 
-### Step 7: Generate Requirements Document
+### Step 8: Generate Requirements Document
    - Create `aidlc-docs/inception/requirements/requirements.md`
    - Include intent analysis summary at the top:
      - User request
@@ -114,7 +148,7 @@ Analyze whatever the user has provided:
    - Incorporate user's answers to clarifying questions
    - Provide brief summary of key requirements
 
-### Step 8: Update State Tracking
+### Step 9: Update State Tracking
 
 Update `aidlc-docs/aidlc-state.md`:
 
@@ -126,7 +160,7 @@ Update `aidlc-docs/aidlc-state.md`:
 - [x] Requirements Analysis
 ```
 
-### Step 9: Log and Proceed
+### Step 10: Log and Proceed
    - Log approval prompt with timestamp in `aidlc-docs/audit.md`
    - Present completion message in this structure:
      1. **Completion Announcement** (mandatory): Always start with this:
