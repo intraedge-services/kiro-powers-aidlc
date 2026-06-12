@@ -64,10 +64,16 @@ inclusion: always
 
 ## Extensions
 
+> Extensions are opt-in rule sets that enforce additional constraints during the AIDLC workflow.
+> They are scanned from `workflows/extensions/` and presented during Requirements Analysis.
+> Extensions listed here with `enabled: yes` will be PRE-SELECTED (user still confirms during workflow).
+> Remove a row or set `enabled: no` to skip the opt-in prompt for that extension.
+
 | Extension | Enabled | Notes |
 |-----------|---------|-------|
-| security-baseline | yes | Enforces security checks during NFR stages |
-| compliance | no | Enable for regulated industries |
+| security-baseline | yes | OWASP-aligned security rules — blocking constraints during NFR and Code Gen stages |
+| property-based-testing | no | Property-based testing with Hypothesis/fast-check — enable for data-heavy projects |
+| resiliency-baseline | no | AWS Well-Architected Reliability Pillar — enable for business-critical workloads |
 
 ## Power Activation Clarifications
 

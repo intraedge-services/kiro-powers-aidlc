@@ -29,6 +29,9 @@ This power packages two things into one installable unit:
 | Hooks for stage transitions | ❌ | ✅ |
 | Auto-activate CI/CD power (CircleCI) | ❌ | ✅ |
 | Python quality gates (testing, linting, security) | ❌ | ✅ |
+| Extension framework (opt-in blocking rules) | ✅ | ✅ |
+| Built-in extensions (security, testing, resiliency) | ✅ | ✅ |
+| Custom extension support | ✅ | ✅ |
 
 ## Prerequisites
 
@@ -219,6 +222,33 @@ cp -R kiro-powers-aws-iaac .kiro/powers/kiro-powers-aws-cdk-python
 
 Once installed and registered, the AIDLC orchestrator activates it automatically at the right stages — no manual intervention needed.
 
+## Extensions Framework
+
+AI-DLC supports an extension system that layers additional blocking rules on top of the core workflow. Extensions are opt-in during Requirements Analysis.
+
+### How It Works
+
+1. At workflow start, the agent scans `workflows/extensions/` for `*.opt-in.md` files
+2. During Requirements Analysis, opt-in questions are presented to the user
+3. When opted in, the extension's rules become **blocking constraints** — verified at each construction stage
+4. If verification fails, the stage cannot complete until the issue is resolved or explicitly waived
+
+### Built-in Extensions
+
+| Extension | Category | Rules | Description |
+|-----------|----------|-------|-------------|
+| `security-baseline` | security | SEC-01 through SEC-08 | Input validation, auth, secrets, encryption, logging, dependencies, error handling |
+| `property-based-testing` | testing | TEST-01 through TEST-05 | Property identification, input generation, shrinking, coverage targets, CI integration |
+| `resiliency-baseline` | resiliency | RES-01 through RES-10 | Availability targets, failure modes, retries, graceful degradation, health checks, observability, data durability, capacity planning, deployment safety, blast radius |
+
+### Adding Custom Extensions
+
+Create a directory under `workflows/extensions/<category>/<name>/` with:
+- `<name>.md` — Rules file with `## Rule PREFIX-NN: Title` + Rule + Verification sections
+- `<name>.opt-in.md` — User prompt for Requirements Analysis (omit for always-enforced)
+
+See `workflows/extensions/README.md` for the full specification.
+
 ## Architecture
 
 ```
@@ -290,6 +320,17 @@ kiro-powers-aidlc/
 │   │   ├── error-handling.md
 │   │   ├── overconfidence-prevention.md
 │   │   └── workflow-changes.md
+│   ├── extensions/                   # Opt-in blocking rule extensions
+│   │   ├── README.md
+│   │   ├── security/baseline/
+│   │   │   ├── security-baseline.md
+│   │   │   └── security-baseline.opt-in.md
+│   │   ├── testing/property-based/
+│   │   │   ├── property-based-testing.md
+│   │   │   └── property-based-testing.opt-in.md
+│   │   └── resiliency/baseline/
+│   │       ├── resiliency-baseline.md
+│   │       └── resiliency-baseline.opt-in.md
 │   ├── inception/                    # Planning & architecture
 │   │   ├── workspace-detection.md
 │   │   ├── reverse-engineering.md

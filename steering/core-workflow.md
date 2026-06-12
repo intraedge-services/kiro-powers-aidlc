@@ -44,6 +44,19 @@ The AI model intelligently assesses what stages are needed based on:
 3. This should only be done ONCE at the start of a new workflow
 4. Do NOT load this file in subsequent interactions to save context space
 
+## MANDATORY: Extension Loading
+**CRITICAL**: At the START of every AI-DLC workflow (after loading common rules, before Power Orchestration), you MUST:
+1. Scan the `workflows/extensions/` directory for all `*.opt-in.md` files
+2. For each `*.opt-in.md` file found, store its content — these will be presented to the user during Requirements Analysis (Step 5.5)
+3. For any extension rules file (e.g., `security-baseline.md`) that does NOT have a matching `*.opt-in.md` file in the same directory, that extension is **always enforced** — load it immediately
+4. Store the list of loaded extensions in context as `ACTIVE_EXTENSIONS` — you will reference this at every construction stage for compliance verification
+
+**Extension Rules Format**: Each extension contains rules in `## Rule <PREFIX-NN>: <Title>` format with Rule and Verification sections. When an extension is active, its rules become **blocking constraints** — the stage cannot complete until all applicable rules pass verification.
+
+**Extension Naming Convention**: The rules file name is derived from the opt-in file by stripping `.opt-in.md` and appending `.md`. Example: `security-baseline.opt-in.md` → `security-baseline.md`.
+
+**If no `workflows/extensions/` directory exists**: Skip extension loading silently.
+
 ## MANDATORY: Power Orchestration
 **CRITICAL**: At the START of every AI-DLC workflow, you MUST:
 1. Check if `.kiro/steering/project-config.md` exists in the workspace
@@ -348,6 +361,26 @@ After the welcome message is displayed, present this prompt to the user:
 - Build and Test (ALWAYS - after all units complete)
 
 **Note**: Each unit is completed fully (design + code) before moving to the next unit.
+
+## MANDATORY: Extension Compliance Verification (Per-Stage)
+
+**At the END of every construction stage** (before presenting the completion message), you MUST:
+1. Check `ACTIVE_EXTENSIONS` for any extensions that apply to the current stage
+2. For each applicable extension, read its enforcement table to identify which rules apply to this stage
+3. For each applicable rule, verify all checklist items in the Verification section
+4. **If all rules pass**: Include a brief compliance note in the stage output: `✅ Extension compliance: [extension names] — all applicable rules verified`
+5. **If any rule fails**: Report the failing rule(s) and specific verification items that failed. The stage CANNOT be marked complete until:
+   - The issue is fixed and re-verified, OR
+   - The user explicitly acknowledges and waives the finding with documented justification (logged in audit.md)
+
+**Compliance Check Format**:
+```markdown
+### 🔒 Extension Compliance Check
+| Extension | Rule | Status | Notes |
+|-----------|------|--------|-------|
+| Security Baseline | SEC-01: Input Validation | ✅ Pass | All inputs validated |
+| Security Baseline | SEC-02: Auth & Authz | ⚠️ Waived | User accepted: PoC only |
+```
 
 ---
 
