@@ -133,18 +133,21 @@ When you start a development request, the workflow guides you through:
 
 ### Power Orchestration Points
 
-| AIDLC Stage | Power Activated | What Happens |
+| AIDLC Stage | What Happens | Method |
 |---|---|---|
-| After User Stories | `project-management` | Create GitHub issues, add to board in "Todo" |
-| Code Gen starts | `project-management` | Move issue to "In Progress" |
-| Code Gen starts | `ci-cd` | Provide pipeline templates for new services |
-| Code Gen starts | `infrastructure` | CDK docs search, code samples, best-practice validation |
-| Code Gen completes | `project-management` | Move issue to "Done", close issue |
-| Infrastructure Design | `infrastructure` | CDK/CFN guidance, template validation, compliance checks |
-| Infrastructure Design | `diagrams` | Generate deployment architecture diagrams |
-| Build and Test | `infrastructure` | Synth validation, cfn-lint, cfn-guard compliance |
-| Build and Test | `ci-cd` | Validate CI configs, check pipeline status |
-| Code Gen (data jobs) | `data-engineering` | Activate for Glue/EMR/Athena patterns |
+| After User Stories | Create GitHub issues, add to board in "Todo" | `gh` CLI |
+| Code Gen starts | Comment on issue: "Code Generation Started" | `gh` CLI |
+| Code Gen starts | Provide pipeline templates for new services | `ci-cd` power |
+| Code Gen starts | CDK docs search, code samples, best-practice validation | `infrastructure` power |
+| Code Gen completes | Close issue with completion comment | `gh` CLI |
+| Infrastructure Design | CDK/CFN guidance, template validation, compliance checks | `infrastructure` power |
+| Infrastructure Design | Generate deployment architecture diagrams | `diagrams` power |
+| Build and Test | Synth validation, cfn-lint, cfn-guard compliance | `infrastructure` power |
+| Build and Test | Validate CI configs, check pipeline status | `ci-cd` power |
+| Code Gen (data jobs) | Activate for Glue/EMR/Athena patterns | `data-engineering` power |
+
+> **Note**: GitHub project management uses `gh` CLI directly — no MCP power needed.
+> This keeps the tool surface minimal and avoids extra confirmation prompts from Kiro.
 
 ## Integrated Power: AWS CDK Python (Infrastructure)
 
@@ -261,15 +264,19 @@ Loaded on-demand via `readFile` during workflow execution:
 
 | Hook | Trigger | Action |
 |---|---|---|
-| `spec-to-issues.json` | User-triggered | Creates GitHub issues from AIDLC user stories |
-| `pre-code-gen.json` | preTaskExecution | Moves board item to "In Progress", activates relevant powers |
-| `aidlc-board-sync.json` | postTaskExecution | Syncs board status after task completion |
+| `spec-to-issues.json` | `PostFileCreate` (stories.md) | Instructs agent to create GitHub issues via `gh` CLI |
+| `pre-code-gen.json` | `PostFileSave` (aidlc-state.md) | Detects stage transitions, activates relevant powers |
+| `aidlc-board-sync.json` | `PostFileSave` (aidlc-state.md) | Closes GitHub issues via `gh` CLI when code gen completes |
 
 ## Configuration
 
-No MCP servers required. This is a pure methodology + steering power.
+No MCP servers required for GitHub integration. The `gh` CLI handles all project management operations directly.
 
-All configuration is done via `.kiro/steering/project-config.md` in your workspace.
+**Prerequisites for GitHub sync:**
+- `gh` CLI installed and authenticated (`gh auth login`)
+- Project config populated in `.kiro/steering/project-config.md`
+
+All other configuration is done via `.kiro/steering/project-config.md` in your workspace.
 
 ## Credits
 

@@ -43,24 +43,29 @@ inclusion: always
 
 | Category | Power Name | Activate During |
 |----------|-----------|------------------|
-| project-management | kiro-powers-github | After user stories, board sync on stage transitions |
 | data-engineering | kiro-powers-aws-data-engineering | Code gen for Glue, EMR, Athena workloads ONLY (not general Python/ML) |
 | infrastructure | kiro-powers-aws-cdk-python | Infrastructure design (MUST activate BEFORE designing), CDK/Python code generation, template validation |
 | diagrams | kiro-powers-diagrams | Architecture docs, infra design, functional design |
 | ci-cd | kiro-powers-circleci | Build & test validation, code gen pipeline templates |
 
+> **Note**: GitHub project management (issue creation, board sync) uses the `gh` CLI directly.
+> No power registration is needed — just configure GitHub Org, Repo, and Project Board Number above.
+
 > **Examples of valid minimal registries:**
 >
-> _Project using only GitHub + CDK (no diagrams, no data engineering, no CI/CD):_
+> _Project using CDK + diagrams (no data engineering, no CI/CD):_
 > | Category | Power Name | Activate During |
 > |----------|-----------|------------------|
-> | project-management | kiro-powers-github | After user stories, board sync |
 > | infrastructure | kiro-powers-aws-cdk-python | Infrastructure design, code generation |
+> | diagrams | kiro-powers-diagrams | Architecture docs, infra design |
 >
-> _Project using only Terraform (no GitHub, no diagrams):_
+> _Project using only Terraform (no diagrams):_
 > | Category | Power Name | Activate During |
 > |----------|-----------|------------------|
 > | infrastructure | terraform | Infrastructure design, Terraform code generation |
+>
+> _Project with no powers (GitHub sync still works via `gh` CLI):_
+> _(Leave the table empty or remove all rows)_
 
 ## Extensions
 

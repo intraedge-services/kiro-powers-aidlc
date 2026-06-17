@@ -35,21 +35,46 @@ This file is auto-included in every interaction. The orchestration checkpoints b
 
 ### After User Stories Stage (Inception)
 
+⚠️ **THIS IS A BLOCKING CHECKPOINT — DO NOT PROCEED TO WORKFLOW PLANNING WITHOUT COMPLETING THIS.**
+
 **Trigger**: User stories have been approved by the user (user says "Approve & Continue" at User Stories completion).
 
-**Check**: Is there a power registered with category `project-management` in project-config.md?
+**Method**: Uses `gh` CLI directly (no power activation needed).
 
-**If YES**:
-1. Activate the registered project-management power using `kiroPowers` action="activate"
-2. Read the generated `aidlc-docs/inception/user-stories/stories.md`
-3. For each user story:
-   - Create a GitHub issue with title `[AIDLC Story {id}] {story title}`
-   - Body: Story description + acceptance criteria as checkboxes
-   - Labels: `aidlc:story`
-   - Add the issue to the configured project board (from project-config.md)
-4. Report to user: "Created {N} issues on the project board. Continuing to next stage."
+**Check**: Read `.kiro/steering/project-config.md`:
+- Is `Auto-create Issues` set to `yes`?
+- Are `GitHub Org`, `GitHub Repo`, and `Project Board Number` configured (not placeholder values)?
 
-**If NO**: Skip silently, proceed to next stage.
+**If YES** — Execution is MANDATORY, not optional:
+1. Read the generated `aidlc-docs/inception/user-stories/stories.md`
+2. Check for duplicates:
+   ```bash
+   gh issue list --repo "ORG/REPO" --label "aidlc:story" --json number,title
+   ```
+3. For each NEW user story (not already created):
+   ```bash
+   gh issue create --repo "ORG/REPO" \
+     --title "[AIDLC Story {id}] {story title}" \
+     --body "## User Story\n\n{description}\n\n## Acceptance Criteria\n\n{criteria as checkboxes}\n\n---\n*Created by Kiro AIDLC*" \
+     --label "aidlc:story" \
+     --assignee "TEAM_LEAD"
+   ```
+4. Add each issue to the project board:
+   ```bash
+   gh project item-add PROJECT_NUMBER --owner "ORG" --url ISSUE_URL
+   ```
+5. Report to user: "✅ Created {N} issues on the GitHub project board. Continue to next stage?"
+6. **Wait for user confirmation** before proceeding to Workflow Planning
+
+**If NO** (config missing or Auto-create Issues is 'no'): Skip silently, proceed to next stage.
+
+**If `gh` CLI is not available**: Warn user: "⚠️ GitHub CLI (gh) not installed or not authenticated. Run `gh auth login` to enable auto-sync." Continue (non-blocking).
+
+**CRITICAL — Why This Gets Skipped (and Why You Must Not Skip It)**:
+- The model often moves directly to Workflow Planning after user approval without executing this sync
+- This creates a disconnect where stories exist in docs but not on the project board
+- The sync MUST happen between user approval and Workflow Planning — it is not deferred to later
+- If you find yourself starting Workflow Planning without having synced stories: STOP and come back here
 
 ### Code Generation Start (Construction)
 
@@ -57,7 +82,11 @@ This file is auto-included in every interaction. The orchestration checkpoints b
 
 **MANDATORY**: Before writing ANY code in this unit, check ALL categories below and activate the relevant powers.
 
-**Check `project-management`**: If registered, find the matching GitHub issue and move it to "In Progress" on the board.
+**Check `project-management`**: If `Auto-sync Board` is `yes` in project-config.md, update the matching GitHub issue status using `gh` CLI:
+```bash
+gh issue comment ISSUE_NUMBER --repo "ORG/REPO" --body "🔄 Code Generation Started"
+```
+(Find the issue by searching: `gh issue list --repo "ORG/REPO" --label "aidlc:story" --search "[AIDLC Story {id}]" --json number,url`)
 
 **Check `data-engineering`**: If registered AND the unit involves Glue/EMR/Athena/Spark, activate the data-engineering power for code patterns. Note: General Python ML code (scikit-learn, pandas, numpy) does NOT trigger this — only AWS data processing services.
 
@@ -75,7 +104,12 @@ This file is auto-included in every interaction. The orchestration checkpoints b
 
 **Trigger**: Code Generation stage approved by user.
 
-**Check `project-management`**: If registered, find the matching GitHub issue, move to "Done", add completion comment, close the issue.
+**Check `project-management`**: If `Auto-sync Board` is `yes` in project-config.md, close the matching GitHub issue using `gh` CLI:
+```bash
+gh issue comment ISSUE_NUMBER --repo "ORG/REPO" --body "✅ Code Generation Complete — Implementation approved."
+gh issue close ISSUE_NUMBER --repo "ORG/REPO" --reason completed
+```
+If `Project Board Number` is configured, the board item moves to "Done" automatically when the issue is closed.
 
 ### Infrastructure Design Stage (Construction)
 

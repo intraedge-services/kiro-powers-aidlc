@@ -1,13 +1,14 @@
 {
-  "name": "AIDLC Board Sync",
-  "version": "2.0.0",
-  "description": "When Code Generation is marked complete in aidlc-state.md, updates the GitHub issue to Done and closes it.",
-  "when": {
-    "type": "fileEdited",
-    "patterns": ["aidlc-docs/aidlc-state.md"]
-  },
-  "then": {
-    "type": "askAgent",
-    "prompt": "The aidlc-state.md file was just updated. Read it and check if 'Code Generation' was just marked as complete ([x]). If yes: 1) Read .kiro/steering/project-config.md and check if 'project-management' power is registered. 2) If yes, activate that power. 3) Find the matching GitHub issue (search for 'aidlc:story' label matching the completed unit). 4) Move the issue to 'Done' on the project board. 5) Add a completion comment. 6) Close the issue. If Code Generation was NOT just completed, do nothing."
-  }
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "AIDLC Board Sync — Code Generation Complete",
+      "trigger": "PostFileSave",
+      "matcher": "aidlc-state\\.md$",
+      "action": {
+        "type": "agent",
+        "prompt": "The aidlc-state.md file was just saved. Read it and check if 'Code Generation' was just marked as complete ([x]).\n\nIf Code Generation was NOT just completed, do nothing.\n\nIf YES — sync the board using `gh` CLI:\n1. Read `.kiro/steering/project-config.md` and extract GitHub Org, Repo, and Project Board Number.\n   - If `Auto-sync Board` is 'no', skip silently.\n2. Find the matching GitHub issue:\n   ```bash\n   gh issue list --repo \"ORG/REPO\" --label \"aidlc:story\" --state open --json number,title,url\n   ```\n   Match by story ID in the title.\n3. Close the issue with a completion comment:\n   ```bash\n   gh issue comment ISSUE_NUMBER --repo \"ORG/REPO\" --body \"✅ Code Generation Complete — Implementation approved.\"\n   gh issue close ISSUE_NUMBER --repo \"ORG/REPO\" --reason completed\n   ```\n4. If the project board is configured, move the item to Done (if board field IDs are known).\n\n**Error Handling**: If `gh` CLI fails, warn user and continue (non-blocking)."
+      }
+    }
+  ]
 }
