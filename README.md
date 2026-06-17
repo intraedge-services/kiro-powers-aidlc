@@ -50,20 +50,34 @@ This power packages two things into one installable unit:
 
 ## Installation
 
-### Option 1: Copy to your project (recommended for teams)
+### Quick Start (Recommended — Interactive Setup)
 
 ```bash
-# Clone this repo
+# Clone the power
 git clone https://github.com/intraedge-services/kiro-powers-aidlc.git /tmp/aidlc-power
 
-# Copy into your project's .kiro/powers/ directory
+# Run the interactive bootstrap from your project root
+cd /path/to/your-project
+/tmp/aidlc-power/scripts/setup-aidlc.sh
+```
+
+The `setup-aidlc.sh` utility handles everything:
+- **Detects** if AIDLC is already configured (offers repair/re-run/exit)
+- **Prompts** for project identity, team, tech stack, powers, and extensions
+- **Generates** a fully populated `project-config.md` (no placeholder editing needed)
+- **Creates** the complete `.kiro/` and `aidlc-docs/` folder structure
+- **Installs** steering files, workflow rule-details, and hooks
+
+### Option 1: Copy to your project (for teams)
+
+```bash
+git clone https://github.com/intraedge-services/kiro-powers-aidlc.git /tmp/aidlc-power
 mkdir -p .kiro/powers
 cp -R /tmp/aidlc-power .kiro/powers/kiro-powers-aidlc
 
-# Initialize workspace (copies steering files, hooks + project config)
-.kiro/powers/kiro-powers-aidlc/scripts/init-workspace.sh
+# Run interactive setup
+.kiro/powers/kiro-powers-aidlc/scripts/setup-aidlc.sh
 
-# Clean up
 rm -rf /tmp/aidlc-power
 ```
 
@@ -73,15 +87,18 @@ rm -rf /tmp/aidlc-power
 mkdir -p .kiro/powers
 git submodule add https://github.com/intraedge-services/kiro-powers-aidlc.git .kiro/powers/kiro-powers-aidlc
 
-# Initialize workspace (copies steering files, hooks + project config)
-.kiro/powers/kiro-powers-aidlc/scripts/init-workspace.sh
+# Run interactive setup
+.kiro/powers/kiro-powers-aidlc/scripts/setup-aidlc.sh
 ```
 
-### Post-Installation: Initialize your workspace
+### Legacy: Non-Interactive Install
 
-Edit `.kiro/steering/project-config.md` with your project's details (GitHub org, repo, board number, team, tech stack, and which powers you have installed).
+For CI/automation where interactive prompts aren't available:
 
-See `examples/` for a real-world example.
+```bash
+.kiro/powers/kiro-powers-aidlc/scripts/init-workspace.sh
+# Then manually edit .kiro/steering/project-config.md
+```
 
 ## Usage
 
@@ -301,7 +318,8 @@ kiro-powers-aidlc/
 │       ├── aidlc-analyze/SKILL.md    # Analysis mode skill (optional pre-step)
 │       └── aidlc-explore/SKILL.md    # Explore mode skill (during workflow)
 ├── scripts/
-│   └── init-workspace.sh            # Run after install to set up workspace
+│   ├── setup-aidlc.sh               # Interactive bootstrap/setup utility (recommended)
+│   └── init-workspace.sh            # Legacy non-interactive setup (for CI/automation)
 ├── steering/
 │   ├── core-workflow.md              # Full AIDLC workflow rules
 │   ├── power-orchestration.md        # Multi-power coordination
