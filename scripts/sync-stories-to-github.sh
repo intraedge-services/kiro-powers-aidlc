@@ -41,7 +41,7 @@ if ! command -v gh &> /dev/null; then
   exit 1
 fi
 
-if ! gh auth status &> /dev/null 2>&1; then
+if ! gh api user --jq '.login' &> /dev/null 2>&1; then
   echo "❌ Error: gh CLI is not authenticated. Run: gh auth login"
   exit 1
 fi
@@ -75,8 +75,8 @@ echo ""
 
 # Simple parser: looks for story headers like "### S1: Story Title" or "### Story 1: Title"
 while IFS= read -r line; do
-  # Match story headers (e.g., "### S1: Login Feature" or "### Story S1: Login Feature")
-  if [[ "$line" =~ ^###[[:space:]]+(S[0-9]+|Story[[:space:]]+[0-9]+):?[[:space:]]+(.*) ]]; then
+  # Match story headers (e.g., "### S1: View City Map" or "### S2: Search Locations")
+  if [[ "$line" =~ ^###[[:space:]]+(S[0-9]+)[[:space:]]*:[[:space:]]*(.*) ]]; then
     STORY_ID="${BASH_REMATCH[1]}"
     STORY_TITLE="${BASH_REMATCH[2]}"
     
@@ -85,7 +85,7 @@ while IFS= read -r line; do
     
     if [[ "$EXISTING" -gt 0 ]]; then
       echo "⏭️  Skipping $STORY_ID (already exists)"
-      ((SKIPPED++))
+      SKIPPED=$((SKIPPED + 1))
       continue
     fi
 
@@ -93,7 +93,7 @@ while IFS= read -r line; do
     
     if [[ "$DRY_RUN" == "true" ]]; then
       echo "🔍 [DRY RUN] Would create: $FULL_TITLE"
-      ((CREATED++))
+      CREATED=$((CREATED + 1))
       continue
     fi
 
@@ -124,7 +124,7 @@ Generated from AIDLC inception phase.
       }
     fi
 
-    ((CREATED++))
+    CREATED=$((CREATED + 1))
   fi
 done < "$STORIES_FILE"
 
