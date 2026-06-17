@@ -1,16 +1,17 @@
 #!/bin/bash
 # ──────────────────────────────────────────────────────────────
-# AIDLC Power — Workspace Initializer
-# Run this from your project root after installing the power.
+# AIDLC Power — Legacy Workspace Initializer
+# ──────────────────────────────────────────────────────────────
 #
-# What it does:
-#   1. Copies project-config template to .kiro/steering/
-#   2. Copies steering files (workflow rules, quality gates, etc.) to .kiro/steering/
-#   3. Copies hooks to .kiro/hooks/
-#   4. Prints next steps
+# ⚠️  DEPRECATED: Use setup-aidlc.sh instead for full interactive setup.
+#     This script is kept for backward compatibility (non-interactive mode).
 #
 # Usage:
 #   .kiro/powers/kiro-powers-aidlc/scripts/init-workspace.sh
+#
+# For the full interactive bootstrap experience, use:
+#   .kiro/powers/kiro-powers-aidlc/scripts/setup-aidlc.sh
+#
 # ──────────────────────────────────────────────────────────────
 
 set -e
