@@ -513,10 +513,18 @@ After the welcome message is displayed, present this prompt to the user:
 1. **MANDATORY**: Log any user input during this stage in audit.md
 2. Load all steps from `construction/code-generation.md`
 3. 🔌 **POWER ORCHESTRATION — Code Generation Start (MANDATORY CHECK)**: Before generating ANY code, check the power registry:
-   - **GitHub Board Sync** (uses `gh` CLI): If `Auto-sync Board` is `yes` in project-config.md, find the matching GitHub issue and add a comment:
+   - **GitHub Board Sync** (uses `gh` CLI): If `Auto-sync Board` is `yes` in project-config.md, find the matching GitHub issue and add a detailed comment:
      ```bash
      gh issue list --repo "ORG/REPO" --label "aidlc:story" --search "[AIDLC Story {id}]" --json number --jq '.[0].number'
-     gh issue comment ISSUE_NUMBER --repo "ORG/REPO" --body "🔄 AIDLC Stage: Code Generation Started"
+     gh issue comment ISSUE_NUMBER --repo "ORG/REPO" --body "🔄 **AIDLC Stage: Code Generation Started**
+
+     **Unit**: {unit name}
+     **Scope**: {what this unit implements}
+     **Planned deliverables**:
+     - {file/component 1}
+     - {file/component 2}
+
+     **Approach**: {1-2 sentences from the code gen plan}"
      ```
    - Category `data-engineering`: If registered AND the unit involves Glue/EMR/Athena/Spark workloads, you MUST activate it — use for code patterns, best practices, and API references during code generation.
    - Category `infrastructure`: If registered AND the unit involves CDK/Terraform/CloudFormation/IaC code, you MUST activate it — use for IaC patterns, code samples, and validation during code generation. Do NOT write CDK/Terraform code without activating this power first.
@@ -527,9 +535,18 @@ After the welcome message is displayed, present this prompt to the user:
 6. **MANDATORY**: Present standardized 2-option completion message as defined in code-generation.md - DO NOT use emergent behavior
 7. **Wait for Explicit Approval**: User must choose between "Request Changes" or "Continue to Next Stage" - DO NOT PROCEED until user confirms
 8. **MANDATORY**: Log user's response in audit.md with complete raw input
-9. 🔌 **POWER ORCHESTRATION — Code Generation Complete**: If `Auto-sync Board` is `yes` in project-config.md, close the matching GitHub issue using `gh` CLI:
+9. 🔌 **POWER ORCHESTRATION — Code Generation Complete**: If `Auto-sync Board` is `yes` in project-config.md, close the matching GitHub issue with a detailed summary:
    ```bash
-   gh issue comment ISSUE_NUMBER --repo "ORG/REPO" --body "✅ Code Generation Complete — Implementation approved."
+   gh issue comment ISSUE_NUMBER --repo "ORG/REPO" --body "✅ **Code Generation Complete — Implementation approved**
+
+   **Unit**: {unit name}
+   **What was built**:
+   - {key file 1 — purpose}
+   - {key file 2 — purpose}
+
+   **Key decisions**: {notable choices made}
+   **Tests**: {test coverage added}
+   **Next**: {what follows}"
    gh issue close ISSUE_NUMBER --repo "ORG/REPO" --reason completed
    ```
    If `gh` fails, warn and continue (non-blocking).
@@ -555,6 +572,7 @@ After the welcome message is displayed, present this prompt to the user:
 4. Create instruction files in build-and-test/ subdirectory: build-instructions.md, unit-test-instructions.md, integration-test-instructions.md, performance-test-instructions.md, build-and-test-summary.md
 5. **Wait for Explicit Approval**: Ask: "**Build and test instructions complete. Ready to proceed to Operations stage?**" - DO NOT PROCEED until user confirms
 6. **MANDATORY**: Log user's response in audit.md with complete raw input
+7. 🔌 **PR CREATION**: If the user asks to create a PR (or says "push and create PR"), you MUST generate a detailed PR description following the template in `steering/github-integration.md` → "Pull Request Creation" section. Never create a PR with an empty or one-line description.
 
 ---
 
