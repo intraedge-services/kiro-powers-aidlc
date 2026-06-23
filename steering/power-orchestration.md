@@ -91,11 +91,25 @@ This file is auto-included in every interaction. The orchestration checkpoints b
 **Check `project-management`**: If `Auto-sync Board` is `yes` in project-config.md, update the matching issue using the provider's CLI:
 ```bash
 # GitHub:
-gh issue comment ISSUE_NUMBER --repo "ORG/REPO" --body "🔄 Code Generation Started"
+gh issue comment ISSUE_NUMBER --repo "ORG/REPO" --body "COMMENT_BODY"
 # GitLab:
-glab issue note ISSUE_NUMBER --repo "ORG/REPO" -m "🔄 Code Generation Started"
+glab issue note ISSUE_NUMBER --repo "ORG/REPO" -m "COMMENT_BODY"
 ```
 (Find the issue by searching: `gh issue list --repo "ORG/REPO" --label "aidlc:story" --search "[AIDLC Story {id}]" --json number,url`)
+
+**Comment body MUST include** (not just a one-liner):
+```markdown
+🔄 **AIDLC Stage: Code Generation Started**
+
+**Unit**: {unit name}
+**Scope**: {brief description of what this unit implements}
+**Planned deliverables**:
+- {file/component 1}
+- {file/component 2}
+- {file/component N}
+
+**Approach**: {1-2 sentences on implementation approach from the code gen plan}
+```
 
 **Check `data-engineering`**: If registered AND the unit involves Glue/EMR/Athena/Spark, activate the data-engineering power for code patterns. Note: General Python ML code (scikit-learn, pandas, numpy) does NOT trigger this — only AWS data processing services.
 
@@ -116,11 +130,27 @@ glab issue note ISSUE_NUMBER --repo "ORG/REPO" -m "🔄 Code Generation Started"
 **Check `project-management`**: If `Auto-sync Board` is `yes` in project-config.md, close the matching issue using the provider's CLI:
 ```bash
 # GitHub:
-gh issue comment ISSUE_NUMBER --repo "ORG/REPO" --body "✅ Code Generation Complete — Implementation approved."
+gh issue comment ISSUE_NUMBER --repo "ORG/REPO" --body "COMMENT_BODY"
 gh issue close ISSUE_NUMBER --repo "ORG/REPO" --reason completed
 # GitLab:
 glab issue close ISSUE_NUMBER --repo "ORG/REPO"
 ```
+
+**Comment body MUST include** (not just a one-liner):
+```markdown
+✅ **Code Generation Complete — Implementation approved**
+
+**Unit**: {unit name}
+**What was built**:
+- {key file/component 1 — brief purpose}
+- {key file/component 2 — brief purpose}
+- {key file/component N — brief purpose}
+
+**Key decisions**: {1-2 sentences on notable implementation choices}
+**Tests**: {what test coverage was added, if any}
+**Next**: {what comes next — e.g., "Proceeding to Build & Test" or "Next unit: X"}
+```
+
 If the project board is configured, the board item moves to "Done" automatically when the issue is closed.
 
 ### Infrastructure Design Stage (Construction)
