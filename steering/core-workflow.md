@@ -572,6 +572,7 @@ After the welcome message is displayed, present this prompt to the user:
 4. Create instruction files in build-and-test/ subdirectory: build-instructions.md, unit-test-instructions.md, integration-test-instructions.md, performance-test-instructions.md, build-and-test-summary.md
 5. **Wait for Explicit Approval**: Ask: "**Build and test instructions complete. Ready to proceed to Operations stage?**" - DO NOT PROCEED until user confirms
 6. **MANDATORY**: Log user's response in audit.md with complete raw input
+7. 🔌 **PR CREATION**: If the user asks to create a PR (or says "push and create PR"), you MUST generate a detailed PR description following the template in `steering/github-integration.md` → "Pull Request Creation" section. Never create a PR with an empty or one-line description.
 
 ---
 
