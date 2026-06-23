@@ -298,8 +298,8 @@ When the user asks to address review comments (or accepts the SessionStart promp
    - Push to the same branch
    - Reply to each review comment on GitHub:
      ```bash
-     gh api repos/ORG/REPO/pulls/PR_NUMBER/comments/COMMENT_ID/replies \
-       --method POST --field body="Fixed — {brief description of what was changed}"
+     gh api repos/ORG/REPO/pulls/PR_NUMBER/comments \
+       --method POST --field body="Fixed — {brief description}" --field in_reply_to=COMMENT_ID
      ```
 
 5. **Notify the user**:
@@ -323,3 +323,127 @@ The steering context from this file gives the agent full instructions on how to 
 - Always run tests after making review fixes
 - Reply to each comment on GitHub so the reviewer sees the response
 - If `gh` is not available, tell the user and skip
+
+
+## PR Review Workflow (Reviewer Side)
+
+### Purpose
+
+Allows a reviewer to use Kiro to perform a structured PR review based on the project's quality standards, extensions, and AIDLC conventions.
+
+### Trigger
+
+Reviewer says:
+- "Review PR #N"
+- "Review PR #N using AIDLC quality standards"
+- "Review this PR" (if on the branch)
+
+### Review Process
+
+1. **Fetch the PR diff and metadata**:
+   ```bash
+   gh pr view PR_NUMBER --repo "ORG/REPO" --json title,body,files,additions,deletions,labels
+   gh pr diff PR_NUMBER --repo "ORG/REPO"
+   ```
+
+2. **Load project context**:
+   - Read `.kiro/steering/project-config.md` for tech stack and extensions
+   - If `security-baseline` extension is enabled → check security rules against the diff
+   - If `resiliency-baseline` extension is enabled → check resiliency patterns
+   - Check linked AIDLC story (from labels/title) for acceptance criteria
+
+3. **Analyze the diff against these criteria**:
+
+   | Check | What to Look For |
+   |-------|-----------------|
+   | **Correctness** | Does the code do what the story/PR description says? |
+   | **Acceptance Criteria** | Are all criteria from the linked story met? |
+   | **Security** (if extension active) | Input validation, auth, secrets, error handling |
+   | **Resiliency** (if extension active) | Retries, timeouts, error boundaries, graceful degradation |
+   | **Code Quality** | Naming, structure, duplication, complexity |
+   | **Tests** | Are new features tested? Coverage gaps? |
+   | **Documentation** | Are public APIs/interfaces documented? |
+
+4. **Generate a structured review**:
+
+   ```markdown
+   ## PR Review: #{number} — {title}
+
+   ### Summary
+   {2-3 sentences: what the PR does and overall assessment}
+
+   ### ✅ What's Good
+   - {Positive observation 1}
+   - {Positive observation 2}
+
+   ### 🔍 Suggestions
+   
+   **{file_path}** (line {N}):
+   > {quote the relevant code}
+   
+   {Explain the issue and suggest a fix}
+
+   **{file_path}** (line {N}):
+   > {quote the relevant code}
+   
+   {Explain the issue and suggest a fix}
+
+   ### 🔒 Extension Compliance
+   | Extension | Status | Notes |
+   |-----------|--------|-------|
+   | security-baseline | ✅ Pass | No issues found |
+   | resiliency-baseline | ⚠️ Suggestion | Consider adding retry on line 42 |
+
+   ### Acceptance Criteria Check
+   - [x] {criterion 1 — met}
+   - [x] {criterion 2 — met}
+   - [ ] {criterion 3 — not addressed in this PR}
+
+   ### Verdict
+   **{APPROVE / REQUEST_CHANGES / COMMENT}** — {one-line reasoning}
+   ```
+
+5. **Ask user before submitting**:
+   ```
+   Here's my review. Would you like me to:
+   - Submit as APPROVE
+   - Submit as REQUEST_CHANGES
+   - Submit as COMMENT (feedback only)
+   - Edit before submitting
+   ```
+
+6. **Submit the review on GitHub**:
+   ```bash
+   gh pr review PR_NUMBER --repo "ORG/REPO" \
+     --event {APPROVE|REQUEST_CHANGES|COMMENT} \
+     --body "REVIEW_BODY"
+   ```
+
+   For inline comments on specific lines:
+   ```bash
+   gh api repos/ORG/REPO/pulls/PR_NUMBER/comments \
+     --method POST \
+     --field body="COMMENT" \
+     --field commit_id="HEAD_SHA" \
+     --field path="FILE_PATH" \
+     --field line=LINE_NUMBER \
+     --field side="RIGHT"
+   ```
+
+### Review Depth Levels
+
+| Request | Depth | Time |
+|---------|-------|------|
+| "Quick review PR #N" | Skim: correctness + obvious issues only | ~30 sec |
+| "Review PR #N" | Standard: all checks above | ~2 min |
+| "Deep review PR #N" | Thorough: line-by-line, performance, edge cases, security | ~5 min |
+
+### Rules
+
+- Always show the review to the user before submitting
+- Never auto-approve without user confirmation
+- If the PR is by the same user, suggest COMMENT instead of APPROVE (can't approve own PR)
+- Be constructive — suggest fixes, don't just point out problems
+- If no extensions are configured, skip the compliance table
+- Keep inline comments focused — one concern per comment, with a suggested fix
+- If the diff is too large (>1000 lines), ask user which files to focus on
