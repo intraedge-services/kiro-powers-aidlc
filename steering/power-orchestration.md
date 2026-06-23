@@ -146,6 +146,10 @@ glab issue close ISSUE_NUMBER --repo "ORG/REPO"
 - {key file/component 2 — brief purpose}
 - {key file/component N — brief purpose}
 
+**Acceptance Criteria** (checked off):
+- [x] {criterion 1 — from the original story}
+- [x] {criterion 2}
+
 **Key decisions**: {1-2 sentences on notable implementation choices}
 **Tests**: {what test coverage was added, if any}
 **Next**: {what comes next — e.g., "Proceeding to Build & Test" or "Next unit: X"}
