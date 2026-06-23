@@ -299,3 +299,23 @@ echo ""
 echo -e "  ${DIM}To start:${NC} ${GREEN}\"Using AI-DLC, build me ...\"${NC}"
 echo -e "  ${DIM}To customize:${NC} edit ${CYAN}.kiro/steering/project-config.md${NC}"
 echo ""
+
+# ── Post-setup hints for incomplete config ───────────────────────────────────
+HINTS=""
+if [ -z "$BOARD_NUMBER" ] || [ "$BOARD_NUMBER" = "none" ]; then
+  HINTS+="  ${YELLOW}→${NC} No project board detected. To enable issue sync, update:\n"
+  HINTS+="    ${CYAN}Board ID${NC} in .kiro/steering/project-config.md\n"
+fi
+if [ -z "$TEAM_LEAD" ]; then
+  HINTS+="  ${YELLOW}→${NC} No team lead detected. Update ${CYAN}Team → Lead${NC} in project-config.md\n"
+fi
+if [ -z "$FRAMEWORK" ]; then
+  HINTS+="  ${YELLOW}→${NC} No framework detected. Add ${CYAN}Framework${NC} in project-config.md if applicable\n"
+fi
+
+if [ -n "$HINTS" ]; then
+  echo -e "${BOLD}📝 Action needed:${NC} Update your config to enable full features:"
+  echo -e "$HINTS"
+  echo -e "  ${DIM}After updating, say \"Sync stories.md to board\" in Kiro anytime.${NC}"
+  echo ""
+fi
