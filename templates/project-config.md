@@ -3,24 +3,39 @@ inclusion: always
 ---
 # Project Configuration
 
-> Copy this to `.kiro/steering/project-config.md` in your project, or run `setup-aidlc.sh` (auto-fills from git).
+> Run `setup-aidlc.sh` to auto-fill this, or copy to `.kiro/steering/project-config.md` and fill manually.
 
 ## Project Identity
 
 - **Name**: {Project Name}
-- **GitHub Org**: {org-name}
-- **GitHub Repo**: {repo-name}
-- **Project Board Number**: {number or "none"}
 - **Default Branch**: main
+
+## Source Control
+
+- **Provider**: github
+- **Org/Owner**: {org-or-username}
+- **Repo**: {repo-name}
+
+> Supported providers: `github`, `gitlab`, `bitbucket`, `azure-devops`
+> For self-hosted: add `- **Host**: https://gitlab.company.com`
+
+## Project Tracking
+
+- **Board Provider**: github-projects
+- **Board ID**: {number or "none"}
+
+> Supported board providers: `github-projects`, `gitlab-boards`, `jira`, `linear`, `none`
+> Set to `none` to skip all board sync.
 
 ## Team
 
-- **Lead**: {github-username}
+- **Lead**: {username}
+- **Developers**: {comma-separated usernames, optional}
 
 ## Tech Stack
 
-- **Language**: {Python / TypeScript / Java / etc.}
-- **Framework**: {AWS CDK / Terraform / Next.js / etc.}
+- **Language**: {Python / TypeScript / Java / Go / Rust / etc.}
+- **Framework**: {AWS CDK / Terraform / Next.js / Django / Spring / etc.}
 
 ## AIDLC Preferences
 
@@ -29,17 +44,24 @@ inclusion: always
 
 ## Installed Powers Registry
 
-> Add rows for powers you have installed. Remove rows you don't use.
-> GitHub project management uses `gh` CLI directly — no power needed for that.
+> Add rows only for powers you have installed in Kiro. Leave empty if none.
+> Issue tracking uses CLI tools directly (gh/glab/etc.) — no power needed.
 
 | Category | Power Name | Activate During |
 |----------|-----------|------------------|
 
-> **Examples:**
+> **Common configurations:**
 >
-> | Category | Power Name | Activate During |
-> |----------|-----------|------------------|
-> | infrastructure | kiro-powers-aws-cdk-python | Infrastructure design, code generation |
-> | diagrams | kiro-powers-diagrams | Architecture docs, infra design |
-> | ci-cd | kiro-powers-circleci | Build & test validation |
+> _AWS CDK project:_
+> | infrastructure | kiro-powers-aws-cdk-python | Infrastructure design, code gen |
+>
+> _Terraform project:_
+> | infrastructure | terraform | Infrastructure design, code gen |
+>
+> _Full stack with diagrams + CI:_
+> | infrastructure | kiro-powers-aws-cdk-python | Infrastructure design |
+> | diagrams | kiro-powers-diagrams | Architecture docs |
+> | ci-cd | kiro-powers-circleci | Pipeline validation |
+>
+> _Data engineering:_
 > | data-engineering | kiro-powers-aws-data-engineering | Glue/EMR/Athena workloads |
