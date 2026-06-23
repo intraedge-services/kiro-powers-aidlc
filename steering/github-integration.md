@@ -258,3 +258,68 @@ From `.kiro/steering/project-config.md`:
 - If `Provider` is `none` or missing: skips all issue/board operations silently
 - If `Board Provider` is `none`: creates issues but skips board placement
 - If values contain `{` (placeholder): skips all operations silently
+
+## PR Review Comments Workflow
+
+### Auto-Check on Session Start
+
+The `pr-review-check.json` hook fires on `SessionStart` and checks if the current branch has an open PR with unresolved review comments. If found, it notifies the user and offers to help.
+
+### Addressing Review Comments
+
+When the user asks to address review comments (or accepts the SessionStart prompt), follow this workflow:
+
+1. **Fetch review comments**:
+   ```bash
+   gh pr view PR_NUMBER --repo "ORG/REPO" --json reviews,comments
+   gh api repos/ORG/REPO/pulls/PR_NUMBER/comments --jq '.[] | {id, path, line, body, user: .user.login}'
+   ```
+
+2. **Group by file** — present a summary:
+   ```markdown
+   📝 **Review comments on PR #N:**
+
+   **src/components/MapView.tsx** (2 comments):
+   - Line 42: "Consider memoizing this callback" — @reviewer
+   - Line 89: "Missing error boundary" — @reviewer
+
+   **src/services/api.ts** (1 comment):
+   - Line 15: "Add timeout to fetch" — @reviewer
+   ```
+
+3. **Address each comment**:
+   - Read the file and the specific line referenced
+   - Make the fix based on the reviewer's feedback
+   - If the comment is unclear or the agent disagrees, explain why and ask the user
+
+4. **After all fixes applied**:
+   - Run tests/build to verify nothing broke
+   - Commit with message: `fix: address PR review feedback`
+   - Push to the same branch
+   - Reply to each review comment on GitHub:
+     ```bash
+     gh api repos/ORG/REPO/pulls/PR_NUMBER/comments/COMMENT_ID/replies \
+       --method POST --field body="Fixed — {brief description of what was changed}"
+     ```
+
+5. **Notify the user**:
+   ```
+   ✅ Addressed N review comments, pushed fixes, and replied on GitHub.
+   ```
+
+### Manual Trigger
+
+User can ask anytime:
+- "Check PR review comments"
+- "Address review feedback on PR #14"
+- "What review comments are pending?"
+
+The steering context from this file gives the agent full instructions on how to handle it.
+
+### Rules
+
+- Never auto-fix without user consent (SessionStart hook only notifies, doesn't act)
+- If a review comment requires a design decision, ask the user
+- Always run tests after making review fixes
+- Reply to each comment on GitHub so the reviewer sees the response
+- If `gh` is not available, tell the user and skip
