@@ -1,13 +1,14 @@
 {
-  "name": "AIDLC Spec to Issues",
-  "version": "2.0.0",
-  "description": "After AIDLC user stories file is created, creates GitHub issues and adds them to the project board.",
-  "when": {
-    "type": "fileCreated",
-    "patterns": ["aidlc-docs/inception/user-stories/stories.md"]
-  },
-  "then": {
-    "type": "askAgent",
-    "prompt": "The AIDLC user stories file was just created. Read .kiro/steering/project-config.md and check if a power is registered with category 'project-management'. If yes, activate that power using kiroPowers. Then read aidlc-docs/inception/user-stories/stories.md and for each user story: 1) Create a GitHub issue in the configured repo (from project-config.md) with title '[AIDLC Story {id}] {title}', body containing the story text + acceptance criteria as checkboxes, labels 'aidlc:story'. 2) Add each issue to the configured project board. 3) Report how many issues were created. If no project-management power is registered or project-config has placeholder values, skip silently."
-  }
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "AIDLC Spec to Issues — Sync Stories to GitHub",
+      "trigger": "PostFileCreate",
+      "matcher": "stories\\.md$",
+      "action": {
+        "type": "agent",
+        "prompt": "The AIDLC user stories file was just created. You MUST now sync these stories to GitHub using the `gh` CLI.\n\n**Steps**:\n1. Read `.kiro/steering/project-config.md` and extract:\n   - `GitHub Org` value\n   - `GitHub Repo` value\n   - `Project Board Number` value\n   - `Lead` value (for assignment)\n   - Check `Auto-create Issues` preference (if 'no', skip silently)\n2. If any required config values are placeholders (contain `{`), skip silently.\n3. Read `aidlc-docs/inception/user-stories/stories.md` and parse each user story (ID, title, description, acceptance criteria).\n4. For each story, check for duplicates:\n   ```bash\n   gh issue list --repo \"ORG/REPO\" --label \"aidlc:story\" --search \"[AIDLC Story {ID}]\" --json number\n   ```\n5. For each NEW story (no duplicate found), create the issue:\n   ```bash\n   gh issue create --repo \"ORG/REPO\" \\\n     --title \"[AIDLC Story {ID}] {title}\" \\\n     --body \"## User Story\\n\\n{description}\\n\\n## Acceptance Criteria\\n\\n{criteria as checkboxes}\\n\\n---\\n*Created by Kiro AIDLC*\" \\\n     --label \"aidlc:story\" \\\n     --assignee \"LEAD\"\n   ```\n6. Add each created issue to the project board:\n   ```bash\n   gh project item-add PROJECT_NUMBER --owner \"ORG\" --url ISSUE_URL\n   ```\n7. Report to user: \"✅ Created {N} issues on the GitHub project board.\"\n\n**Error Handling**: If `gh` is not installed or not authenticated, warn the user: \"⚠️ GitHub CLI (gh) not available. Run `gh auth login` to enable auto-sync.\" and continue (non-blocking)."
+      }
+    }
+  ]
 }

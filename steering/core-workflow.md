@@ -275,13 +275,39 @@ After the welcome message is displayed, present this prompt to the user:
 8. **PART 2 - Generation**: Execute approved plan to generate stories and personas
 9. **Wait for Explicit Approval**: Follow approval format from user-stories.md detailed steps - DO NOT PROCEED until user confirms
 10. **MANDATORY**: Log user's response in audit.md with complete raw input
-11. 🔌 **POWER ORCHESTRATION — After User Stories Approved**: Check if a power is registered with category `project-management`. If YES:
-    - Activate the project-management power
-    - Read the generated `aidlc-docs/inception/user-stories/stories.md`
-    - For each user story: Create a GitHub issue with title `[AIDLC Story {id}] {story title}`, body containing story description + acceptance criteria as checkboxes + traceability, labels `aidlc:story` + feature-area label, assigned to team lead from project-config
-    - Add each issue to the configured project board with status "Todo"
-    - Report to user: "Created {N} issues on the project board. Continue to next stage?"
-    - If power is not installed or activation fails: warn user and continue
+11. 🔌 **MANDATORY — GitHub Sync After User Stories Approved**: 
+
+    ⚠️ **DO NOT SKIP THIS STEP. DO NOT PROCEED TO WORKFLOW PLANNING UNTIL THIS IS COMPLETE.**
+
+    Immediately after the user approves the stories, you MUST sync them to GitHub using the `gh` CLI:
+    
+    a. Read `.kiro/steering/project-config.md` and check:
+       - Is `Auto-create Issues` set to `yes`?
+       - Are `GitHub Org`, `GitHub Repo`, `Project Board Number` configured (not placeholders)?
+    b. **If NO** (config missing, placeholders, or Auto-create is 'no'): Skip silently, proceed to Workflow Planning.
+    c. **If YES**:
+       1. Read the generated `aidlc-docs/inception/user-stories/stories.md`
+       2. Check for duplicate issues:
+          ```bash
+          gh issue list --repo "ORG/REPO" --label "aidlc:story" --json number,title
+          ```
+       3. For each NEW user story (not already created):
+          ```bash
+          gh issue create --repo "ORG/REPO" \
+            --title "[AIDLC Story {id}] {story title}" \
+            --body "## User Story\n\n{description}\n\n## Acceptance Criteria\n\n{criteria as checkboxes}\n\n---\n*Created by Kiro AIDLC*" \
+            --label "aidlc:story" \
+            --assignee "TEAM_LEAD"
+          ```
+       4. Add each issue to the project board:
+          ```bash
+          gh project item-add PROJECT_NUMBER --owner "ORG" --url ISSUE_URL
+          ```
+       5. Report to user: "✅ Created {N} issues on the GitHub project board. Continue to next stage?"
+       6. **Wait for user confirmation before proceeding to Workflow Planning**
+    d. If `gh` CLI is not available: warn user ("⚠️ `gh` not installed or not authenticated. Run `gh auth login`.") and continue (non-blocking)
+    
+    **SELF-CHECK**: Before starting Workflow Planning, ask yourself: "Did I sync stories to GitHub?" If the answer is NO and the config IS set up — STOP and go back to complete step 11.
 
 ## Workflow Planning (ALWAYS EXECUTE)
 
@@ -487,7 +513,11 @@ After the welcome message is displayed, present this prompt to the user:
 1. **MANDATORY**: Log any user input during this stage in audit.md
 2. Load all steps from `construction/code-generation.md`
 3. 🔌 **POWER ORCHESTRATION — Code Generation Start (MANDATORY CHECK)**: Before generating ANY code, check the power registry:
-   - Category `project-management`: If registered, activate it. Find the GitHub issue matching the current unit/story. Move the issue to "In Progress" on the project board. Add comment: "🔄 AIDLC Stage: Code Generation Started".
+   - **GitHub Board Sync** (uses `gh` CLI): If `Auto-sync Board` is `yes` in project-config.md, find the matching GitHub issue and add a comment:
+     ```bash
+     gh issue list --repo "ORG/REPO" --label "aidlc:story" --search "[AIDLC Story {id}]" --json number --jq '.[0].number'
+     gh issue comment ISSUE_NUMBER --repo "ORG/REPO" --body "🔄 AIDLC Stage: Code Generation Started"
+     ```
    - Category `data-engineering`: If registered AND the unit involves Glue/EMR/Athena/Spark workloads, you MUST activate it — use for code patterns, best practices, and API references during code generation.
    - Category `infrastructure`: If registered AND the unit involves CDK/Terraform/CloudFormation/IaC code, you MUST activate it — use for IaC patterns, code samples, and validation during code generation. Do NOT write CDK/Terraform code without activating this power first.
    - Category `ci-cd`: If registered AND the unit involves creating new services or pipelines, activate it — use for CI/CD pipeline templates and configuration generation.
@@ -497,11 +527,12 @@ After the welcome message is displayed, present this prompt to the user:
 6. **MANDATORY**: Present standardized 2-option completion message as defined in code-generation.md - DO NOT use emergent behavior
 7. **Wait for Explicit Approval**: User must choose between "Request Changes" or "Continue to Next Stage" - DO NOT PROCEED until user confirms
 8. **MANDATORY**: Log user's response in audit.md with complete raw input
-9. 🔌 **POWER ORCHESTRATION — Code Generation Complete**: Check if a power is registered with category `project-management`. If YES:
-   - Find the GitHub issue matching the current unit/story
-   - Move the issue to "Done" on the project board
-   - Add comment with implementation summary
-   - Close the issue with state_reason "completed"
+9. 🔌 **POWER ORCHESTRATION — Code Generation Complete**: If `Auto-sync Board` is `yes` in project-config.md, close the matching GitHub issue using `gh` CLI:
+   ```bash
+   gh issue comment ISSUE_NUMBER --repo "ORG/REPO" --body "✅ Code Generation Complete — Implementation approved."
+   gh issue close ISSUE_NUMBER --repo "ORG/REPO" --reason completed
+   ```
+   If `gh` fails, warn and continue (non-blocking).
 
 ---
 
@@ -514,7 +545,7 @@ After the welcome message is displayed, present this prompt to the user:
      - Validate any generated `.circleci/config.yml` or CI pipeline configurations
      - Provide pipeline templates if new services need CI/CD setup
      - Check latest pipeline status for the current branch
-   - Category `project-management`: If registered, find matching GitHub issues for completed units. Move to "In Progress" and add comment: "🔄 AIDLC Stage: Build & Test Started".
+   - **GitHub Board Sync** (uses `gh` CLI): If `Auto-sync Board` is `yes`, add a comment to matching issues: `gh issue comment ISSUE_NUMBER --repo "ORG/REPO" --body "🔄 AIDLC Stage: Build & Test Started"`
 4. Generate comprehensive build and test instructions:
    - Build instructions for all units
    - Unit test execution instructions
