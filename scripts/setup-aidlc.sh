@@ -87,14 +87,29 @@ echo ""
 echo -e "${BOLD}${CYAN}  AIDLC Setup${NC} ${DIM}— auto-detecting project configuration${NC}"
 echo ""
 
-# ── Git Remote → org, repo, branch ───────────────────────────────────────────
+# ── Git Remote → provider, org, repo, branch ────────────────────────────────
+PROVIDER=""
 if [ -z "$GITHUB_ORG" ] || [ -z "$GITHUB_REPO" ]; then
   remote_url=$(git remote get-url origin 2>/dev/null || echo "")
   if [ -n "$remote_url" ]; then
-    GITHUB_ORG="${GITHUB_ORG:-$(echo "$remote_url" | sed -E 's|.*github\.com[:/]([^/]+)/.*|\1|')}"
-    GITHUB_REPO="${GITHUB_REPO:-$(echo "$remote_url" | sed -E 's|.*github\.com[:/][^/]+/([^.]+)(\.git)?$|\1|')}"
+    # Detect provider from remote URL
+    if echo "$remote_url" | grep -q "github.com"; then
+      PROVIDER="github"
+    elif echo "$remote_url" | grep -q "gitlab"; then
+      PROVIDER="gitlab"
+    elif echo "$remote_url" | grep -q "bitbucket"; then
+      PROVIDER="bitbucket"
+    elif echo "$remote_url" | grep -q "dev.azure.com"; then
+      PROVIDER="azure-devops"
+    else
+      PROVIDER="github"
+    fi
+    # Extract org and repo (works for github, gitlab, bitbucket SSH/HTTPS patterns)
+    GITHUB_ORG="${GITHUB_ORG:-$(echo "$remote_url" | sed -E 's|.*[:/]([^/]+)/[^/]+(\.git)?$|\1|')}"
+    GITHUB_REPO="${GITHUB_REPO:-$(echo "$remote_url" | sed -E 's|.*[:/][^/]+/([^.]+)(\.git)?$|\1|')}"
   fi
 fi
+PROVIDER="${PROVIDER:-github}"
 
 if [ -z "$DEFAULT_BRANCH" ]; then
   DEFAULT_BRANCH=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|origin/||' || echo "main")
@@ -149,6 +164,7 @@ elif [ -f "package.json" ] && grep -q "react" package.json 2>/dev/null; then
 fi
 
 # ── Print what we found ──────────────────────────────────────────────────────
+success "Provider: $PROVIDER"
 success "Org: ${GITHUB_ORG:-<not detected>}"
 success "Repo: ${GITHUB_REPO:-<not detected>}"
 success "Branch: $DEFAULT_BRANCH"
@@ -181,10 +197,18 @@ inclusion: always
 ## Project Identity
 
 - **Name**: ${PROJECT_NAME}
-- **GitHub Org**: ${GITHUB_ORG}
-- **GitHub Repo**: ${GITHUB_REPO}
-- **Project Board Number**: ${BOARD_NUMBER:-none}
 - **Default Branch**: ${DEFAULT_BRANCH}
+
+## Source Control
+
+- **Provider**: ${PROVIDER}
+- **Org/Owner**: ${GITHUB_ORG}
+- **Repo**: ${GITHUB_REPO}
+
+## Project Tracking
+
+- **Board Provider**: ${PROVIDER}-projects
+- **Board ID**: ${BOARD_NUMBER:-none}
 
 ## Team
 
@@ -270,7 +294,7 @@ fi
 # ══════════════════════════════════════════════════════════════════════════════
 
 echo ""
-echo -e "${BOLD}${GREEN}Done!${NC} AIDLC configured for ${CYAN}${GITHUB_ORG}/${GITHUB_REPO}${NC}"
+echo -e "${BOLD}${GREEN}Done!${NC} AIDLC configured for ${CYAN}${GITHUB_ORG}/${GITHUB_REPO}${NC} (${PROVIDER})"
 echo ""
 echo -e "  ${DIM}To start:${NC} ${GREEN}\"Using AI-DLC, build me ...\"${NC}"
 echo -e "  ${DIM}To customize:${NC} edit ${CYAN}.kiro/steering/project-config.md${NC}"

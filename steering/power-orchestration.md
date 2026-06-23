@@ -39,15 +39,16 @@ This file is auto-included in every interaction. The orchestration checkpoints b
 
 **Trigger**: User stories have been approved by the user (user says "Approve & Continue" at User Stories completion).
 
-**Method**: Uses `gh` CLI directly (no power activation needed).
+**Method**: Uses CLI tools directly based on `Source Control → Provider` in project-config.md (no power activation needed).
 
 **Check**: Read `.kiro/steering/project-config.md`:
 - Is `Auto-create Issues` set to `yes`?
-- Are `GitHub Org`, `GitHub Repo`, and `Project Board Number` configured (not placeholder values)?
+- Are `Source Control → Org/Owner` and `Repo` configured (not placeholder values)?
+- What is the `Provider`? (github → `gh`, gitlab → `glab`)
 
 **If YES** — Execution is MANDATORY, not optional:
 1. Read the generated `aidlc-docs/inception/user-stories/stories.md`
-2. Check for duplicates:
+2. Check for duplicates (GitHub example):
    ```bash
    gh issue list --repo "ORG/REPO" --label "aidlc:story" --json number,title
    ```
@@ -59,16 +60,21 @@ This file is auto-included in every interaction. The orchestration checkpoints b
      --label "aidlc:story" \
      --assignee "TEAM_LEAD"
    ```
-4. Add each issue to the project board:
+4. If `Board Provider` is not `none`, add each issue to the board:
    ```bash
-   gh project item-add PROJECT_NUMBER --owner "ORG" --url ISSUE_URL
+   gh project item-add BOARD_ID --owner "ORG" --url ISSUE_URL
    ```
-5. Report to user: "✅ Created {N} issues on the GitHub project board. Continue to next stage?"
+5. Report to user: "✅ Created {N} issues on the project board. Continue to next stage?"
 6. **Wait for user confirmation** before proceeding to Workflow Planning
 
-**If NO** (config missing or Auto-create Issues is 'no'): Skip silently, proceed to next stage.
+**If NO** (config missing, placeholders, or Auto-create Issues is 'no'): Skip silently, proceed to next stage.
 
-**If `gh` CLI is not available**: Warn user: "⚠️ GitHub CLI (gh) not installed or not authenticated. Run `gh auth login` to enable auto-sync." Continue (non-blocking).
+**If CLI tool is not available**: Warn user (e.g., "⚠️ `gh` CLI not installed or not authenticated. Run `gh auth login` to enable issue sync.") Continue (non-blocking).
+
+**Provider-specific commands:**
+- `github`: `gh issue create`, `gh project item-add`
+- `gitlab`: `glab issue create`, board sync via API
+- If `Provider` is unknown or unsupported: warn and skip
 
 **CRITICAL — Why This Gets Skipped (and Why You Must Not Skip It)**:
 - The model often moves directly to Workflow Planning after user approval without executing this sync
@@ -82,9 +88,12 @@ This file is auto-included in every interaction. The orchestration checkpoints b
 
 **MANDATORY**: Before writing ANY code in this unit, check ALL categories below and activate the relevant powers.
 
-**Check `project-management`**: If `Auto-sync Board` is `yes` in project-config.md, update the matching GitHub issue status using `gh` CLI:
+**Check `project-management`**: If `Auto-sync Board` is `yes` in project-config.md, update the matching issue using the provider's CLI:
 ```bash
+# GitHub:
 gh issue comment ISSUE_NUMBER --repo "ORG/REPO" --body "🔄 Code Generation Started"
+# GitLab:
+glab issue note ISSUE_NUMBER --repo "ORG/REPO" -m "🔄 Code Generation Started"
 ```
 (Find the issue by searching: `gh issue list --repo "ORG/REPO" --label "aidlc:story" --search "[AIDLC Story {id}]" --json number,url`)
 
@@ -104,12 +113,15 @@ gh issue comment ISSUE_NUMBER --repo "ORG/REPO" --body "🔄 Code Generation Sta
 
 **Trigger**: Code Generation stage approved by user.
 
-**Check `project-management`**: If `Auto-sync Board` is `yes` in project-config.md, close the matching GitHub issue using `gh` CLI:
+**Check `project-management`**: If `Auto-sync Board` is `yes` in project-config.md, close the matching issue using the provider's CLI:
 ```bash
+# GitHub:
 gh issue comment ISSUE_NUMBER --repo "ORG/REPO" --body "✅ Code Generation Complete — Implementation approved."
 gh issue close ISSUE_NUMBER --repo "ORG/REPO" --reason completed
+# GitLab:
+glab issue close ISSUE_NUMBER --repo "ORG/REPO"
 ```
-If `Project Board Number` is configured, the board item moves to "Done" automatically when the issue is closed.
+If the project board is configured, the board item moves to "Done" automatically when the issue is closed.
 
 ### Infrastructure Design Stage (Construction)
 

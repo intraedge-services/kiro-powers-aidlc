@@ -1,19 +1,36 @@
 # GitHub Integration Steering
 
-Detailed instructions for integrating AIDLC with GitHub project management using the `gh` CLI directly.
+Detailed instructions for integrating AIDLC with project management using CLI tools directly.
 
-## Prerequisites
+## Supported Providers
+
+| Provider | CLI Tool | Issue Command | Board Sync |
+|----------|----------|---------------|------------|
+| `github` | `gh` | `gh issue create` | `gh project item-add` |
+| `gitlab` | `glab` | `glab issue create` | via API |
+| `bitbucket` | `bb` | via API | via API |
+| `azure-devops` | `az boards` | `az boards work-item create` | automatic |
+
+The workflow reads `Source Control → Provider` from project-config.md and uses the corresponding CLI.
+
+## Prerequisites (GitHub — default)
 
 - `gh` CLI installed ([https://cli.github.com/](https://cli.github.com/))
 - Authenticated: `gh auth login` (needs `repo` + `project` scopes)
 - Project board created in the GitHub org
-- `.kiro/steering/project-config.md` with GitHub Org, Repo, and Project Board Number filled in
+- `.kiro/steering/project-config.md` with Source Control + Project Tracking filled in
 
-## Why `gh` CLI (Not a GitHub MCP Power)
+## Prerequisites (GitLab)
+
+- `glab` CLI installed ([https://gitlab.com/gitlab-org/cli](https://gitlab.com/gitlab-org/cli))
+- Authenticated: `glab auth login`
+- Board created in the GitLab project
+
+## Why CLI Tools (Not MCP Powers)
 
 - **Fewer tools exposed** → fewer Kiro confirmation prompts → faster workflow
 - **No MCP server to run** → simpler setup, no background processes
-- **Standard dev tooling** → most developers already have `gh` installed
+- **Standard dev tooling** → most developers already have `gh`/`glab` installed
 - **Direct execution** → single bash command per operation, no power activation chain
 
 ## Spec-to-Issues Flow
@@ -137,10 +154,14 @@ export AIDLC_TEAM_LEAD="username"
 From `.kiro/steering/project-config.md`:
 
 ```markdown
-## Project Identity
-- **GitHub Org**: my-org
-- **GitHub Repo**: my-repo
-- **Project Board Number**: 5
+## Source Control
+- **Provider**: github
+- **Org/Owner**: my-org
+- **Repo**: my-repo
+
+## Project Tracking
+- **Board Provider**: github-projects
+- **Board ID**: 7
 
 ## Team
 - **Lead**: username
@@ -150,4 +171,9 @@ From `.kiro/steering/project-config.md`:
 - **Auto-sync Board**: yes
 ```
 
-All GitHub operations check these values. If they contain `{` (placeholder), operations are skipped silently.
+**Provider-specific behavior:**
+- If `Provider` is `github`: uses `gh` CLI
+- If `Provider` is `gitlab`: uses `glab` CLI
+- If `Provider` is `none` or missing: skips all issue/board operations silently
+- If `Board Provider` is `none`: creates issues but skips board placement
+- If values contain `{` (placeholder): skips all operations silently
