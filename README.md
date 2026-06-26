@@ -1,6 +1,6 @@
 # kiro-powers-aidlc
 
-**AI-Driven Development Lifecycle + Power Orchestration** — a Kiro Power that combines the official AI-DLC methodology with automated GitHub sync, multi-power coordination, and zero-config setup.
+**AI-Driven Development Lifecycle + Power Orchestration** — a Kiro Power that combines the official AI-DLC methodology with automated GitHub sync, multi-power coordination, security extensions, traceability enforcement, and zero-config setup.
 
 ## Quick Start (30 seconds)
 
@@ -27,15 +27,39 @@ your-project/
 │   ├── steering/              # Auto-loaded context for Kiro
 │   │   ├── project-config.md  # Your project identity + preferences
 │   │   ├── core-workflow.md   # Full AIDLC stage rules
+│   │   ├── git-signing.md    # Commit signing enforcement
 │   │   ├── power-orchestration.md
 │   │   └── github-integration.md
 │   ├── hooks/                 # Automated triggers
 │   │   ├── spec-to-issues.json     # Stories → GitHub issues
 │   │   ├── aidlc-board-sync.json   # Close issues on completion
+│   │   ├── pr-review-check.json    # PR review validation
 │   │   └── pre-code-gen.json       # Activate powers at stage transitions
-│   └── aws-aidlc-rule-details/     # 24 workflow rule files
-└── aidlc-docs/                # AIDLC artifacts (state, audit log)
+│   └── aws-aidlc-rule-details/     # Workflow rule files + extensions
+├── aidlc-docs/                # AIDLC artifacts (state, audit log)
+└── .aidlc-version             # Installed power version (for upgrades)
 ```
+
+## Upgrade Detection
+
+The setup script is safe to re-run:
+
+```bash
+# Already installed and current:
+$ ./setup-aidlc.sh
+✓ AIDLC already up to date (v1.1.0)
+
+# Installed but outdated:
+$ ./setup-aidlc.sh
+  Installed: v1.0.0
+  Available: v1.1.0
+  Upgrade from v1.0.0 to v1.1.0? (y/n):
+
+# Skip prompt:
+$ ./setup-aidlc.sh --force
+```
+
+Existing steering files are never silently overwritten — backups are created if content differs.
 
 ## Team Setup
 
@@ -44,23 +68,13 @@ your-project/
 ```bash
 # Person 1 (you):
 /tmp/aidlc/scripts/setup-aidlc.sh
-git add .kiro/ aidlc-docs/
-git commit -m "chore: add AIDLC workflow config"
+git add .kiro/ aidlc-docs/ .aidlc-version
+git commit -S -m "chore: add AIDLC workflow config"
 git push
 
 # Person 2, 3, ... (teammates):
 git clone git@github.com:your-org/your-repo.git
 # Done. .kiro/ is already there. Open in Kiro and go.
-```
-
-To add team members, edit `.kiro/steering/project-config.md`:
-
-```markdown
-## Team
-
-- **Lead**: your-username
-- **Developers**: teammate1, teammate2
-- **Reviewers**: teammate3
 ```
 
 ## Prerequisites
@@ -70,22 +84,24 @@ To add team members, edit `.kiro/steering/project-config.md`:
 | Kiro IDE | Yes | AI-powered development environment |
 | `gh` CLI | Recommended | GitHub issue sync ([install](https://cli.github.com/)) |
 | Git remote | Recommended | Auto-detection of org/repo/branch |
+| GPG key | Recommended | Commit signing ([setup guide](https://docs.github.com/en/authentication/managing-commit-signature-verification)) |
 
 Run `gh auth login` once for GitHub sync to work. If `gh` isn't available, the workflow still works — it just skips issue creation.
 
 ## Setup Script Options
 
-The script auto-detects everything, but you can override:
-
 ```bash
 # Override specific values:
 ./setup-aidlc.sh --board 7 --lead "username"
 
-# Force interactive mode (asks all questions):
+# Force interactive mode:
 ./setup-aidlc.sh --interactive
 
+# Skip upgrade prompt:
+./setup-aidlc.sh --force
+
 # All flags:
-./setup-aidlc.sh --org NAME --repo NAME --board NUMBER --lead USER --lang LANGUAGE
+./setup-aidlc.sh --org NAME --repo NAME --board NUMBER --lead USER --lang LANGUAGE --force
 ```
 
 ### What Gets Auto-Detected
@@ -99,10 +115,92 @@ The script auto-detects everything, but you can override:
 | Project Board | `gh project list --owner ORG` (first board found) |
 | Language | `package.json` → JS/TS, `pyproject.toml` → Python, `pom.xml` → Java, etc. |
 | Framework | `cdk.json` → AWS CDK, `*.tf` → Terraform, etc. |
+| GPG Signing | `git config --get user.signingkey` |
+
+### Windows / WSL Compatibility
+
+Every platform-specific command in the setup script includes inline comments with Windows equivalents:
+
+```bash
+# Mac/Linux:
+brew install gh
+
+# Windows (WSL): sudo apt install gh
+# Windows (native): winget install GitHub.cli
+```
+
+## The AIDLC Workflow
+
+When you say "Using AI-DLC, build me X", the workflow guides you through:
+
+### Inception Phase (What to build)
+
+| Stage | Always? | Purpose |
+|-------|---------|---------|
+| Workspace Detection | Yes | Brownfield vs greenfield, feature slug confirmation |
+| Reverse Engineering | Brownfield only | Architecture docs, component inventory |
+| Requirements Analysis | Yes | Adaptive depth based on complexity |
+| User Stories | Conditional | Personas + acceptance criteria |
+| Application Design | Conditional | Components, services, dependencies |
+| Units Generation | Conditional | Decomposition for complex systems |
+| Workflow Planning | Yes | Which stages to execute |
+
+### Construction Phase (How to build it)
+
+| Stage | Always? | Purpose |
+|-------|---------|---------|
+| Functional Design | Conditional | Business logic, domain entities, rules |
+| NFR Requirements | Conditional | Performance, security, scalability |
+| NFR Design | Conditional | Patterns for non-functional requirements |
+| Infrastructure Design | Conditional | Cloud resources, deployment architecture |
+| Code Generation | Yes | Plan → implement → verify |
+| Build and Test | Yes | Verification instructions |
+
+Each stage has quality gates — you approve before moving forward.
+
+## Feature-Scoped Traceability
+
+Every AIDLC cycle creates a feature-scoped directory. Previous artifacts are never overwritten:
+
+```
+aidlc-docs/
+├── setup-aidlc/               # Feature 1
+│   ├── inception/
+│   └── construction/
+├── user-auth/                 # Feature 2
+│   ├── inception/
+│   └── construction/
+├── aidlc-state.md             # Shared (current feature context)
+├── audit.md                   # Shared (append-only)
+└── requirements-index.md      # Consolidated index of all features
+```
+
+At Workspace Detection, the agent proposes a feature slug and waits for your confirmation before creating directories.
+
+## Extensions
+
+Rule sets that enforce constraints during construction stages:
+
+### Always Enforced (no opt-in needed)
+
+| Extension | Rules | What It Enforces |
+|-----------|-------|-----------------|
+| Requirement Versioning | REQ-VER-01–05 | Feature-scoped directories, requirements index, no-overwrite protection, slug confirmation |
+| Git Commit Signing | GIT-SIGN-01–04 | GPG/SSH signed commits, guided setup if missing |
+
+### Opt-In (presented during Requirements Analysis)
+
+| Extension | Rules | What It Enforces |
+|-----------|-------|-----------------|
+| Security Baseline | SEC-01–08 | OWASP input validation, auth, secrets, encryption, logging, dependencies |
+| Resiliency Baseline | RES-* | AWS Well-Architected reliability patterns |
+| Property-Based Testing | TEST-* | Hypothesis/fast-check property-based test generation |
+
+Extensions follow the `## Rule PREFIX-NN:` format with verification checklists at each stage.
 
 ## GitHub Sync (via `gh` CLI)
 
-No MCP power needed for GitHub integration. The workflow uses `gh` CLI directly:
+No MCP power needed. The workflow uses `gh` CLI directly:
 
 | Event | What Happens |
 |-------|-------------|
@@ -110,18 +208,24 @@ No MCP power needed for GitHub integration. The workflow uses `gh` CLI directly:
 | Code generation starts | Comments on issue: "🔄 Code Generation Started" |
 | Code generation approved | Closes issue: "✅ Complete" |
 
-**Config required in `project-config.md`:**
+**Config in `project-config.md`:**
 ```markdown
-- **GitHub Org**: your-org
-- **GitHub Repo**: your-repo
-- **Project Board Number**: 7
-
-## AIDLC Preferences
 - **Auto-create Issues**: yes
 - **Auto-sync Board**: yes
 ```
 
 Set `Auto-create Issues: no` to disable sync entirely.
+
+## Hooks
+
+Pre-built event-driven automation:
+
+| Hook | Trigger | What It Does |
+|------|---------|-------------|
+| `spec-to-issues.json` | `PostFileCreate` (stories.md) | Syncs approved stories to GitHub issues |
+| `aidlc-board-sync.json` | `PostToolUse` | Updates board on stage transitions |
+| `pr-review-check.json` | `PreToolUse` | Validates PR review requirements |
+| `pre-code-gen.json` | `PreTaskExec` | Activates registered powers before code gen |
 
 ## Optional Powers
 
@@ -138,69 +242,84 @@ Register additional powers in `project-config.md` for enhanced validation:
 | data-engineering | kiro-powers-aws-data-engineering | Glue/EMR/Athena workloads |
 ```
 
-**The workflow works fine with an empty powers table.** Powers add validation and best-practice guidance but never block progress. If a power isn't installed, the workflow warns and continues.
+Powers add validation and best-practice guidance but never block progress. If a power isn't installed, the workflow warns and continues.
 
-## The AIDLC Workflow
+## Skills
 
-When you say "Using AI-DLC, build me X", the workflow guides you through:
+Reusable skills bundled with the power:
 
-**Inception** (What to build)
-1. Workspace Detection → brownfield vs greenfield
-2. Requirements Analysis → adaptive depth
-3. User Stories → personas + acceptance criteria
-4. Workflow Planning → which stages to execute
+| Skill | Purpose |
+|-------|---------|
+| `setup-aidlc` | Install/upgrade AI-DLC in any project — supports Kiro, Cursor, Cline, Q Developer, Copilot, Claude Code |
+| `aidlc-analyze` | Pre-workflow analysis mode — explore domain, constraints, risks |
+| `aidlc-explore` | Mid-workflow investigation — compare approaches, clarify decisions |
 
-**Construction** (How to build it)
-5. Functional Design → business logic, domain entities
-6. Infrastructure Design → cloud resources
-7. Code Generation → plan then implement
-8. Build and Test → verification instructions
-
-Each stage has quality gates — you approve before moving forward.
-
-## Extensions
-
-Opt-in rule sets that enforce constraints during construction:
-
-| Extension | What It Enforces |
-|-----------|-----------------|
-| security-baseline | OWASP input validation, auth, secrets, encryption |
-| property-based-testing | Hypothesis/fast-check test generation |
-| resiliency-baseline | AWS Well-Architected reliability patterns |
-
-Extensions are presented during Requirements Analysis. You choose which to enable.
+Skills follow the [Agent Skills standard](https://agentskills.io/specification). See `steering/skills-convention.md` for conventions when creating new skills.
 
 ## Explore & Analyze Modes
 
 Two thinking-partner modes available anytime:
 
-- **Analyze** (`/aidlc:analyze`) — Deep-dive before starting. Understand domain, constraints, risks.
-- **Explore** (`/aidlc:explore`) — Mid-workflow investigation. Compare approaches, clarify decisions.
+- **Analyze** — Deep-dive before starting. Understand domain, constraints, risks.
+- **Explore** — Mid-workflow investigation. Compare approaches, clarify decisions.
 
 ## Project Structure
 
 ```
 kiro-powers-aidlc/
 ├── scripts/
-│   └── setup-aidlc.sh           # Zero-prompt bootstrap
+│   ├── setup-aidlc.sh           # Zero-prompt bootstrap (upgrade-aware)
+│   ├── sync-stories-to-github.sh # Bulk story creation helper
+│   └── init-workspace.sh        # Workspace initialization
 ├── steering/                     # Loaded by Kiro as context
-├── workflows/                    # 24 rule-detail files
-│   ├── common/                   # Shared rules (10 files)
+│   ├── core-workflow.md          # Main AIDLC orchestration rules
+│   ├── github-integration.md    # GitHub sync via gh CLI
+│   ├── power-orchestration.md   # Multi-power coordination
+│   ├── skills-convention.md     # Agent Skills standard for creating skills
+│   └── project-config-template.md
+├── workflows/                    # Rule-detail files
+│   ├── common/                   # Shared utilities (10 files)
 │   ├── inception/                # Planning stages (7 files)
 │   ├── construction/             # Build stages (6 files)
-│   └── extensions/               # Opt-in blocking rules
-├── hooks/                        # Automated triggers (3 files)
+│   ├── operations/               # Placeholder for future deployment workflows
+│   └── extensions/               # Blocking rule extensions
+│       ├── core/                 # Always-enforced (requirement versioning)
+│       ├── security/             # Security baseline + git signing
+│       ├── resiliency/           # AWS reliability patterns
+│       └── testing/              # Property-based testing
+├── hooks/                        # Event-driven automation (4 files)
+├── skills/                       # Reusable AI skills
+│   └── setup-aidlc/SKILL.md    # Multi-IDE AIDLC installer
 ├── templates/
 │   └── project-config.md        # Template for manual setup
+├── examples/
+│   └── sample-project-config.md # Example configuration
 ├── POWER.md                      # Power manifest
-└── package.json
+├── package.json
+└── README.md
 ```
+
+## Relationship to `awslabs/aidlc-workflows`
+
+This power is a **superset** of the official AWS AIDLC rules:
+
+| Aspect | `awslabs/aidlc-workflows` | This power |
+|--------|--------------------------|------------|
+| **Scope** | Generic rules for any AI agent | Full Kiro-native orchestration |
+| **Extensions** | None | 5 extensions with formal verification |
+| **GitHub Sync** | None | Automated spec-to-issues + board updates |
+| **Power Orchestration** | None | Multi-power coordination |
+| **Hooks** | None | 4 pre-built event triggers |
+| **Upgrade Detection** | None | Version-aware reinstall |
+| **Multi-IDE Support** | Download zip | Skill with IDE auto-detection |
+
+The `skills/setup-aidlc` skill can install the vanilla AWS rules for non-Kiro agents (Cursor, Cline, etc.). Our power's workflow engine is independent — no runtime dependency on the AWS release.
 
 ## Credits
 
 - Core AI-DLC methodology: [awslabs/aidlc-workflows](https://github.com/awslabs/aidlc-workflows) (MIT-0)
 - Sample Kiro Power: [aws-samples/sample-aidlc-kiro-power](https://github.com/aws-samples/sample-aidlc-kiro-power) (MIT-0)
-- Power orchestration & GitHub integration: [IntraEdge](https://github.com/intraedge-services)
+- Power orchestration, extensions & GitHub integration: [IntraEdge](https://github.com/intraedge-services)
 
 ## License
 
