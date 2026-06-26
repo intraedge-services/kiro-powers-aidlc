@@ -2,7 +2,9 @@
 
 **AI-Driven Development Lifecycle + Power Orchestration** — a Kiro Power that combines the official AI-DLC methodology with automated GitHub sync, multi-power coordination, security extensions, traceability enforcement, and zero-config setup.
 
-## Quick Start (30 seconds)
+## Quick Start
+
+### Mac / Linux (30 seconds)
 
 ```bash
 # From your project root (must have a git remote):
@@ -10,6 +12,32 @@ git clone https://github.com/intraedge-services/kiro-powers-aidlc.git /tmp/aidlc
 /tmp/aidlc/scripts/setup-aidlc.sh
 rm -rf /tmp/aidlc
 ```
+
+### Windows — PowerShell (with git)
+
+```powershell
+cd C:\path\to\your-project
+git clone https://github.com/intraedge-services/kiro-powers-aidlc.git C:\temp\aidlc
+powershell -ExecutionPolicy Bypass -File "C:\temp\aidlc\scripts\setup-aidlc.ps1"
+Remove-Item C:\temp\aidlc -Recurse -Force
+```
+
+### Windows — PowerShell (no git installed)
+
+```powershell
+# Download and extract the power
+Invoke-WebRequest -Uri "https://github.com/intraedge-services/kiro-powers-aidlc/archive/refs/heads/main.zip" -OutFile "$env:USERPROFILE\Downloads\aidlc.zip"
+Expand-Archive -Path "$env:USERPROFILE\Downloads\aidlc.zip" -DestinationPath "$env:USERPROFILE\Downloads\aidlc" -Force
+
+# Run setup from your project directory
+cd C:\path\to\your-project
+powershell -ExecutionPolicy Bypass -File "$env:USERPROFILE\Downloads\aidlc\kiro-powers-aidlc-main\scripts\setup-aidlc.ps1"
+
+# Cleanup
+Remove-Item "$env:USERPROFILE\Downloads\aidlc.zip", "$env:USERPROFILE\Downloads\aidlc" -Recurse -Force
+```
+
+---
 
 That's it. No questions asked — it auto-detects everything from your git remote, package files, and `gh` CLI.
 
