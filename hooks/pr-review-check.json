@@ -1,0 +1,13 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "AIDLC — Check Open PR Review Comments",
+      "trigger": "SessionStart",
+      "action": {
+        "type": "agent",
+        "prompt": "Check if there are any open pull requests with unresolved review comments for this project.\n\n**Steps**:\n1. Read `.kiro/steering/project-config.md` and extract `Source Control → Org/Owner` and `Repo`.\n   - If values are placeholders (contain `{`) or missing, skip silently.\n2. Get the current branch: `git branch --show-current`\n3. Check for open PRs on this branch:\n   ```bash\n   gh pr list --repo \"ORG/REPO\" --head \"CURRENT_BRANCH\" --state open --json number,title,reviewDecision\n   ```\n4. If no open PRs found, skip silently (do nothing).\n5. For each open PR, check for unresolved review comments:\n   ```bash\n   gh api repos/ORG/REPO/pulls/PR_NUMBER/comments --jq '[.[] | select(.in_reply_to_id == null)] | length'\n   ```\n6. If there ARE unresolved review comments, notify the user:\n   ```\n   📝 **PR Review Comments Pending**\n\n   PR #NUMBER: \"TITLE\" has N unresolved review comment(s).\n\n   Would you like me to:\n   - Show the review comments\n   - Address them and push fixes\n   - Skip for now\n   ```\n7. If there are NO review comments, or the PR has been approved, skip silently.\n\n**Rules**:\n- This check is informational only — never auto-fix without user consent\n- If `gh` is not installed or not authenticated, skip silently\n- If no open PRs exist for current branch, skip silently\n- Keep the notification brief — don't dump full comment text unless user asks"
+      }
+    }
+  ]
+}

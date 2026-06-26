@@ -258,3 +258,192 @@ From `.kiro/steering/project-config.md`:
 - If `Provider` is `none` or missing: skips all issue/board operations silently
 - If `Board Provider` is `none`: creates issues but skips board placement
 - If values contain `{` (placeholder): skips all operations silently
+
+## PR Review Comments Workflow
+
+### Auto-Check on Session Start
+
+The `pr-review-check.json` hook fires on `SessionStart` and checks if the current branch has an open PR with unresolved review comments. If found, it notifies the user and offers to help.
+
+### Addressing Review Comments
+
+When the user asks to address review comments (or accepts the SessionStart prompt), follow this workflow:
+
+1. **Fetch review comments**:
+   ```bash
+   gh pr view PR_NUMBER --repo "ORG/REPO" --json reviews,comments
+   gh api repos/ORG/REPO/pulls/PR_NUMBER/comments --jq '.[] | {id, path, line, body, user: .user.login}'
+   ```
+
+2. **Group by file** — present a summary:
+   ```markdown
+   📝 **Review comments on PR #N:**
+
+   **src/components/MapView.tsx** (2 comments):
+   - Line 42: "Consider memoizing this callback" — @reviewer
+   - Line 89: "Missing error boundary" — @reviewer
+
+   **src/services/api.ts** (1 comment):
+   - Line 15: "Add timeout to fetch" — @reviewer
+   ```
+
+3. **Address each comment**:
+   - Read the file and the specific line referenced
+   - Make the fix based on the reviewer's feedback
+   - If the comment is unclear or the agent disagrees, explain why and ask the user
+
+4. **After all fixes applied**:
+   - Run tests/build to verify nothing broke
+   - Commit with message: `fix: address PR review feedback`
+   - Push to the same branch
+   - Reply to each review comment on GitHub:
+     ```bash
+     gh api repos/ORG/REPO/pulls/PR_NUMBER/comments \
+       --method POST --field body="Fixed — {brief description}" --field in_reply_to=COMMENT_ID
+     ```
+
+5. **Notify the user**:
+   ```
+   ✅ Addressed N review comments, pushed fixes, and replied on GitHub.
+   ```
+
+### Manual Trigger
+
+User can ask anytime:
+- "Check PR review comments"
+- "Address review feedback on PR #14"
+- "What review comments are pending?"
+
+The steering context from this file gives the agent full instructions on how to handle it.
+
+### Rules
+
+- Never auto-fix without user consent (SessionStart hook only notifies, doesn't act)
+- If a review comment requires a design decision, ask the user
+- Always run tests after making review fixes
+- Reply to each comment on GitHub so the reviewer sees the response
+- If `gh` is not available, tell the user and skip
+
+
+## PR Review Workflow (Reviewer Side)
+
+### Purpose
+
+Allows a reviewer to use Kiro to perform a structured PR review based on the project's quality standards, extensions, and AIDLC conventions.
+
+### Trigger
+
+Reviewer says:
+- "Review PR #N"
+- "Review PR #N using AIDLC quality standards"
+- "Review this PR" (if on the branch)
+
+### Review Process
+
+1. **Fetch the PR diff and metadata**:
+   ```bash
+   gh pr view PR_NUMBER --repo "ORG/REPO" --json title,body,files,additions,deletions,labels
+   gh pr diff PR_NUMBER --repo "ORG/REPO"
+   ```
+
+2. **Load project context**:
+   - Read `.kiro/steering/project-config.md` for tech stack and extensions
+   - If `security-baseline` extension is enabled → check security rules against the diff
+   - If `resiliency-baseline` extension is enabled → check resiliency patterns
+   - Check linked AIDLC story (from labels/title) for acceptance criteria
+
+3. **Analyze the diff against these criteria**:
+
+   | Check | What to Look For |
+   |-------|-----------------|
+   | **Correctness** | Does the code do what the story/PR description says? |
+   | **Acceptance Criteria** | Are all criteria from the linked story met? |
+   | **Security** (if extension active) | Input validation, auth, secrets, error handling |
+   | **Resiliency** (if extension active) | Retries, timeouts, error boundaries, graceful degradation |
+   | **Code Quality** | Naming, structure, duplication, complexity |
+   | **Tests** | Are new features tested? Coverage gaps? |
+   | **Documentation** | Are public APIs/interfaces documented? |
+
+4. **Generate a structured review**:
+
+   ```markdown
+   ## PR Review: #{number} — {title}
+
+   ### Summary
+   {2-3 sentences: what the PR does and overall assessment}
+
+   ### ✅ What's Good
+   - {Positive observation 1}
+   - {Positive observation 2}
+
+   ### 🔍 Suggestions
+   
+   **{file_path}** (line {N}):
+   > {quote the relevant code}
+   
+   {Explain the issue and suggest a fix}
+
+   **{file_path}** (line {N}):
+   > {quote the relevant code}
+   
+   {Explain the issue and suggest a fix}
+
+   ### 🔒 Extension Compliance
+   | Extension | Status | Notes |
+   |-----------|--------|-------|
+   | security-baseline | ✅ Pass | No issues found |
+   | resiliency-baseline | ⚠️ Suggestion | Consider adding retry on line 42 |
+
+   ### Acceptance Criteria Check
+   - [x] {criterion 1 — met}
+   - [x] {criterion 2 — met}
+   - [ ] {criterion 3 — not addressed in this PR}
+
+   ### Verdict
+   **{APPROVE / REQUEST_CHANGES / COMMENT}** — {one-line reasoning}
+   ```
+
+5. **Ask user before submitting**:
+   ```
+   Here's my review. Would you like me to:
+   - Submit as APPROVE
+   - Submit as REQUEST_CHANGES
+   - Submit as COMMENT (feedback only)
+   - Edit before submitting
+   ```
+
+6. **Submit the review on GitHub**:
+   ```bash
+   gh pr review PR_NUMBER --repo "ORG/REPO" \
+     --event {APPROVE|REQUEST_CHANGES|COMMENT} \
+     --body "REVIEW_BODY"
+   ```
+
+   For inline comments on specific lines:
+   ```bash
+   gh api repos/ORG/REPO/pulls/PR_NUMBER/comments \
+     --method POST \
+     --field body="COMMENT" \
+     --field commit_id="HEAD_SHA" \
+     --field path="FILE_PATH" \
+     --field line=LINE_NUMBER \
+     --field side="RIGHT"
+   ```
+
+### Review Depth Levels
+
+| Request | Depth | Time |
+|---------|-------|------|
+| "Quick review PR #N" | Skim: correctness + obvious issues only | ~30 sec |
+| "Review PR #N" | Standard: all checks above | ~2 min |
+| "Deep review PR #N" | Thorough: line-by-line, performance, edge cases, security | ~5 min |
+
+### Rules
+
+- Always show the review to the user before submitting
+- Never auto-approve without user confirmation
+- If the PR is by the same user, suggest COMMENT instead of APPROVE (can't approve own PR)
+- Be constructive — suggest fixes, don't just point out problems
+- If no extensions are configured, skip the compliance table
+- Keep inline comments focused — one concern per comment, with a suggested fix
+- If the diff is too large (>1000 lines), ask user which files to focus on
