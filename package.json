@@ -1,7 +1,7 @@
 {
   "name": "kiro-powers-aidlc",
   "displayName": "AI-DLC with Power Orchestration",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "Complete AI-DLC methodology power for Kiro with integrated power orchestration. Includes the full adaptive workflow (Inception, Construction, Operations) plus automated GitHub board sync via gh CLI, multi-power coordination, AWS CDK Python infrastructure integration, and hooks for seamless team workflows. Based on the official awslabs/aidlc-workflows methodology.",
   "keywords": [
     "aidlc",
