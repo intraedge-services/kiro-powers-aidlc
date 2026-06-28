@@ -41,7 +41,7 @@ set -uo pipefail
 
 # ── Current Power Version ────────────────────────────────────────────────────
 # Bump this on each release of the power
-AIDLC_POWER_VERSION="1.1.0"
+AIDLC_POWER_VERSION="1.2.0"
 
 # ── Colors ───────────────────────────────────────────────────────────────────
 # Mac/Linux: ANSI escape codes work natively
