@@ -166,6 +166,14 @@ This stage generates code for each unit of work through two integrated parts:
 - **STORY TRACEABILITY**: Mark unit stories [x] when functionality is implemented
 - **RESPECT DEPENDENCIES**: Only implement when unit dependencies are satisfied
 
+### Python Project Setup Rules
+- **pyproject.toml completeness**: When generating `pyproject.toml` for a Python project (especially with non-standard layouts like `infra/`, `src/`, or multi-package structures):
+  - ALWAYS include `[tool.setuptools.packages.find]` with explicit `include` patterns
+  - ALWAYS verify `pip install -e .` (or `pip install -e ".[dev]"`) works before marking code generation complete
+  - If the install fails due to package discovery, fix it immediately — do not leave it for Build & Test
+  - Common fix: add `where = ["."]` and `include = ["app*", "src*"]` matching actual package directories
+- **requirements.txt / dependencies**: Ensure all imported packages are listed in project dependencies
+
 ## Completion Criteria
 - Complete unit code generation plan created and approved
 - All steps in unit code generation plan marked [x]
