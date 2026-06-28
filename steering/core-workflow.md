@@ -535,20 +535,30 @@ After the welcome message is displayed, present this prompt to the user:
 6. **MANDATORY**: Present standardized 2-option completion message as defined in code-generation.md - DO NOT use emergent behavior
 7. **Wait for Explicit Approval**: User must choose between "Request Changes" or "Continue to Next Stage" - DO NOT PROCEED until user confirms
 8. **MANDATORY**: Log user's response in audit.md with complete raw input
-9. 🔌 **POWER ORCHESTRATION — Code Generation Complete**: If `Auto-sync Board` is `yes` in project-config.md, close the matching GitHub issue with a detailed summary:
+9. 🔌 **POWER ORCHESTRATION — Code Generation Complete**: If `Auto-sync Board` is `yes` in project-config.md, close each matching GitHub issue with a **detailed story-specific closing comment** (NOT a generic one-liner):
    ```bash
-   gh issue comment ISSUE_NUMBER --repo "ORG/REPO" --body "✅ **Code Generation Complete — Implementation approved**
+   gh issue comment ISSUE_NUMBER --repo "ORG/REPO" --body "## ✅ Implementation Complete
 
-   **Unit**: {unit name}
-   **What was built**:
-   - {key file 1 — purpose}
-   - {key file 2 — purpose}
+   ### What Was Built
+   {Describe the specific endpoint/component/feature implemented for THIS story}
 
-   **Key decisions**: {notable choices made}
-   **Tests**: {test coverage added}
-   **Next**: {what follows}"
+   ### Files Created/Modified
+   - \`{file_path}\` — {purpose}
+   - \`{file_path}\` — {purpose}
+
+   ### Acceptance Criteria Verified
+   - [x] {criterion 1} — verified via {test name or method}
+   - [x] {criterion 2} — verified via {test name or method}
+
+   ### Test Coverage
+   - {N} unit tests covering this story
+   - Key tests: {test names relevant to this story}
+
+   ---
+   *Closed by Kiro AIDLC — Code Generation approved*"
    gh issue close ISSUE_NUMBER --repo "ORG/REPO" --reason completed
    ```
+   **NEVER** use a generic message like "Code Generation Complete" — always include story-specific implementation details, file paths, acceptance criteria verification, and test coverage.
    If `gh` fails, warn and continue (non-blocking).
 
 ---

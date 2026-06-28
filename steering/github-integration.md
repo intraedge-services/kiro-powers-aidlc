@@ -116,10 +116,67 @@ gh issue comment "$ISSUE_NUMBER" --repo "ORG/REPO" --body "🔄 Code Generation 
 
 ### Closing an Issue
 
+When closing an issue after code generation is approved, the closing comment MUST include story-specific implementation details — not just a generic "Complete" message.
+
+**Closing Comment Template:**
+
 ```bash
-gh issue comment "$ISSUE_NUMBER" --repo "ORG/REPO" --body "✅ Code Generation Complete — Implementation approved."
+gh issue comment "$ISSUE_NUMBER" --repo "ORG/REPO" --body "## ✅ Implementation Complete
+
+### What Was Built
+{Describe the specific feature/endpoint/component that was implemented for THIS story}
+
+### Files Created/Modified
+- \`{file_path_1}\` — {what it does}
+- \`{file_path_2}\` — {what it does}
+
+### Acceptance Criteria Verified
+- [x] {criterion 1 — how it was verified}
+- [x] {criterion 2 — how it was verified}
+- [x] {criterion N — how it was verified}
+
+### Test Coverage
+- {N} unit tests covering this story
+- Key test cases: {brief list of what's tested}
+
+---
+*Closed by Kiro AIDLC — Code Generation approved*"
 gh issue close "$ISSUE_NUMBER" --repo "ORG/REPO" --reason completed
 ```
+
+**Example — for a "Create a Task" story:**
+```bash
+gh issue comment "$ISSUE_NUMBER" --repo "ORG/REPO" --body "## ✅ Implementation Complete
+
+### What Was Built
+POST /tasks endpoint that creates a new task with auto-generated UUID, default status 'todo', and ISO 8601 timestamp.
+
+### Files Created/Modified
+- \`app/routes.py\` — POST /tasks route handler with 201 response
+- \`app/models.py\` — TaskCreate schema (title required, description optional)
+- \`app/store.py\` — create_task() method with UUID generation
+
+### Acceptance Criteria Verified
+- [x] POST /tasks returns 201 with the created task — verified via test_create_task_with_title
+- [x] Response includes auto-generated UUID, title, status=todo, and created_at — verified via assertions on response body
+- [x] POST /tasks without a title returns 422 — verified via test_create_task_without_title_returns_422
+- [x] Optional description field is stored when provided — verified via test_create_task_with_description
+
+### Test Coverage
+- 4 unit tests covering this story
+- Key test cases: valid creation, creation with description, missing title (422), empty title (422)
+
+---
+*Closed by Kiro AIDLC — Code Generation approved*"
+gh issue close "$ISSUE_NUMBER" --repo "ORG/REPO" --reason completed
+```
+
+**Rules for Closing Comments:**
+- NEVER use a generic one-liner like "Code Generation Complete" — always include story-specific details
+- Reference actual file paths from the generated code
+- Mark each acceptance criterion as checked with a brief note on how it was verified
+- Include test count and key test case names relevant to THIS story
+- If multiple stories share implementation (e.g., shared models file), still describe what's relevant to each specific story
 
 When an issue is closed and it's on a project board, many board configurations will auto-move it to "Done".
 
