@@ -295,29 +295,48 @@ Todo → In Progress → Review → Done
 
 ### Moving Items on the Project Board
 
-To change an issue's status column, use the GitHub Projects API:
+To change an issue's status column, use the GitHub Projects v2 API via `gh`:
 
 ```bash
-# Step 1: Get the project item ID for this issue
-ITEM_ID=$(gh project item-list PROJECT_NUMBER --owner "ORG" --format json \
+# ─── REUSABLE: Move issue to a target status column ───
+# Inputs: ORG, BOARD_NUMBER, ISSUE_NUMBER, TARGET_STATUS (e.g., "In Progress", "In Review", "Done")
+
+# Step 1: Get the project's node ID from the board number
+PROJECT_ID=$(gh project list --owner "ORG" --format json --jq ".projects[] | select(.number == BOARD_NUMBER) | .id")
+
+# Step 2: Get the project item ID for this issue
+ITEM_ID=$(gh project item-list BOARD_NUMBER --owner "ORG" --format json \
   --jq ".items[] | select(.content.number == $ISSUE_NUMBER) | .id")
 
-# Step 2: Get the Status field ID and option IDs
-STATUS_FIELD_ID=$(gh project field-list PROJECT_NUMBER --owner "ORG" --format json \
+# Step 3: Get the Status field ID
+STATUS_FIELD_ID=$(gh project field-list BOARD_NUMBER --owner "ORG" --format json \
   --jq '.fields[] | select(.name == "Status") | .id')
 
-# Step 3: Get the target status option ID
-# (Replace "In Progress" with the target column name)
-OPTION_ID=$(gh project field-list PROJECT_NUMBER --owner "ORG" --format json \
-  --jq '.fields[] | select(.name == "Status") | .options[] | select(.name == "In Progress") | .id')
+# Step 4: Get the target status option ID
+OPTION_ID=$(gh project field-list BOARD_NUMBER --owner "ORG" --format json \
+  --jq ".fields[] | select(.name == \"Status\") | .options[] | select(.name == \"$TARGET_STATUS\") | .id")
 
-# Step 4: Update the item's status
-gh project item-edit --project-id PROJECT_ID --id "$ITEM_ID" --field-id "$STATUS_FIELD_ID" --single-select-option-id "$OPTION_ID"
+# Step 5: Update the item's status
+if [ -n "$PROJECT_ID" ] && [ -n "$ITEM_ID" ] && [ -n "$STATUS_FIELD_ID" ] && [ -n "$OPTION_ID" ]; then
+  gh project item-edit --project-id "$PROJECT_ID" --id "$ITEM_ID" \
+    --field-id "$STATUS_FIELD_ID" --single-select-option-id "$OPTION_ID"
+else
+  echo "⚠️ Could not move issue #$ISSUE_NUMBER to '$TARGET_STATUS' — missing project data"
+fi
 ```
 
-**Fallback**: If project field commands fail (permissions, project type mismatch), fall back to comment-only updates. Board status is non-blocking — never fail the workflow over a board move.
+**Where values come from**:
+- `ORG` → from project-config.md `Org/Owner`
+- `BOARD_NUMBER` → from project-config.md `Board ID` (numeric, e.g., `7`)
+- `ISSUE_NUMBER` → from the `gh issue list` search for story ID
+- `TARGET_STATUS` → the column name to move to
 
-**Column name matching**: Common GitHub Projects column names are "Todo", "In Progress", "In Review", "Done". If a column doesn't exist, skip the move and log a warning.
+**Fallback**: If any step fails (permissions, project type mismatch, column doesn't exist), fall back to comment-only updates. Board status is **non-blocking** — never fail the workflow over a board move.
+
+**Column name matching**: Common GitHub Projects column names are "Todo", "In Progress", "In Review", "Done". If the exact name doesn't match, try common alternatives:
+- "In Progress" ↔ "Working" ↔ "Active"
+- "In Review" ↔ "Review" ↔ "Under Review"
+- If no match found: skip the move, log a warning, continue
 
 ### Stage → Board Action Mapping
 
