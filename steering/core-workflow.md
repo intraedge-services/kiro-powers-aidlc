@@ -599,14 +599,15 @@ After the welcome message is displayed, present this prompt to the user:
    
    **Step B — Close with detailed comment**: Close each matching GitHub issue with a **detailed story-specific closing comment** (NOT a generic one-liner):
    ```bash
-   gh issue comment ISSUE_NUMBER --repo "ORG/REPO" --body "## ✅ Implementation Complete
+   cat > /tmp/close-body.md << 'EOF'
+   ## ✅ Implementation Complete
 
    ### What Was Built
    {Describe the specific endpoint/component/feature implemented for THIS story}
 
    ### Files Created/Modified
-   - \`{file_path}\` — {purpose}
-   - \`{file_path}\` — {purpose}
+   - `{file_path}` — {purpose}
+   - `{file_path}` — {purpose}
 
    ### Acceptance Criteria Verified
    - [x] {criterion 1} — verified via {test name or method}
@@ -617,8 +618,12 @@ After the welcome message is displayed, present this prompt to the user:
    - Key tests: {test names relevant to this story}
 
    ---
-   *Closed by Kiro AIDLC — Code Generation approved*"
-   gh issue close ISSUE_NUMBER --repo "ORG/REPO" --reason completed
+   *Closed by Kiro AIDLC — Code Generation approved*
+   EOF
+
+   gh issue comment "$ISSUE_NUMBER" --repo "ORG/REPO" -F /tmp/close-body.md
+   gh issue close "$ISSUE_NUMBER" --repo "ORG/REPO" --reason completed
+   rm -f /tmp/close-body.md
    ```
    **NEVER** use a generic message like "Code Generation Complete" — always include story-specific implementation details, file paths, acceptance criteria verification, and test coverage.
    
@@ -645,7 +650,11 @@ After the welcome message is displayed, present this prompt to the user:
      - Validate any generated `.circleci/config.yml` or CI pipeline configurations
      - Provide pipeline templates if new services need CI/CD setup
      - Check latest pipeline status for the current branch
-   - **GitHub Board Sync** (uses `gh` CLI): If `Auto-sync Board` is `yes`, add a comment to matching issues: `gh issue comment ISSUE_NUMBER --repo "ORG/REPO" --body "🔄 AIDLC Stage: Build & Test Started"`
+   - **GitHub Board Sync** (uses `gh` CLI): If `Auto-sync Board` is `yes`, add a comment to matching issues:
+     ```bash
+     ISSUE_NUMBER=$(gh issue list --repo "ORG/REPO" --label "aidlc:story" --search "[AIDLC Story {id}]" --json number --jq '.[0].number')
+     gh issue comment "$ISSUE_NUMBER" --repo "ORG/REPO" --body "🔄 AIDLC Stage: Build & Test Started"
+     ```
 4. Generate comprehensive build and test instructions:
    - Build instructions for all units
    - Unit test execution instructions

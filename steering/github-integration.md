@@ -358,8 +358,18 @@ If no match found: log warning, skip (non-blocking).
 
 ### Commenting on an Issue
 
+For single-line comments, inline `--body` is acceptable:
 ```bash
 gh issue comment "$ISSUE_NUMBER" --repo "ORG/REPO" --body "🔄 Code Generation Started"
+```
+
+For multi-line comments, ALWAYS use file input:
+```bash
+cat > /tmp/comment.md << 'EOF'
+{multi-line comment content}
+EOF
+gh issue comment "$ISSUE_NUMBER" --repo "ORG/REPO" -F /tmp/comment.md
+rm -f /tmp/comment.md
 ```
 
 ### Closing an Issue
@@ -530,12 +540,19 @@ The PR description MUST be auto-populated from AIDLC artifacts. Use this structu
 
 ### CLI Command
 
+**ALWAYS use file input for PR body** (same rule as issue creation):
 ```bash
+cat > /tmp/pr-body.md << 'EOF'
+{PR body from template above}
+EOF
+
 gh pr create --repo "ORG/REPO" \
   --title "{concise title — max 70 chars}" \
-  --body "PR_BODY_FROM_TEMPLATE_ABOVE" \
+  -F /tmp/pr-body.md \
   --base main \
   --head CURRENT_BRANCH
+
+rm -f /tmp/pr-body.md
 ```
 
 ### Rules
