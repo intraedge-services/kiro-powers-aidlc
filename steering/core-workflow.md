@@ -335,7 +335,7 @@ After the welcome message is displayed, present this prompt to the user:
           ```
        6. Report to user: "✅ Created {N} issues on the GitHub project board. Continue to next stage?"
        7. **Wait for user confirmation before proceeding to Workflow Planning**
-    d. If `gh` CLI is not available: warn user ("⚠️ `gh` not installed or not authenticated. Run `gh auth login`.") and continue (non-blocking)
+    d. If `gh` CLI is not available or not authenticated: Follow the guided setup flow defined in `github-integration.md` → "MANDATORY: Auth Pre-Flight Check". Display the appropriate setup/auth message, wait for user response. If user chooses to skip, proceed to Workflow Planning without sync.
     
     **SELF-CHECK**: Before starting Workflow Planning, ask yourself: "Did I sync stories to GitHub?" If the answer is NO and the config IS set up — STOP and go back to complete step 11.
 
@@ -543,11 +543,24 @@ After the welcome message is displayed, present this prompt to the user:
 1. **MANDATORY**: Log any user input during this stage in audit.md
 2. Load all steps from `construction/code-generation.md`
 3. 🔌 **POWER ORCHESTRATION — Code Generation Start (MANDATORY CHECK)**: Before generating ANY code, check the power registry:
-   - **GitHub Board Sync** (uses `gh` CLI): If `Auto-sync Board` is `yes` in project-config.md, find the matching GitHub issue, move it to "In Progress" on the board, and add a detailed comment:
+   - **GitHub Board Sync** (uses `gh` CLI): If `Auto-sync Board` is `yes` in project-config.md, find the matching GitHub issue, **move it to "In Progress"** on the board, and add a comment:
      ```bash
+     # Find the issue
      ISSUE_NUMBER=$(gh issue list --repo "ORG/REPO" --label "aidlc:story" --search "[AIDLC Story {id}]" --json number --jq '.[0].number')
-     # Move to "In Progress" on board (see github-integration.md for full project item-edit commands)
-     # Then add comment:
+     
+     # Move to "In Progress" on the project board
+     ITEM_ID=$(gh project item-list BOARD_NUMBER --owner "ORG" --format json --jq ".items[] | select(.content.number == $ISSUE_NUMBER) | .id")
+     if [ -n "$ITEM_ID" ]; then
+       STATUS_FIELD_ID=$(gh project field-list BOARD_NUMBER --owner "ORG" --format json --jq '.fields[] | select(.name == "Status") | .id')
+       OPTION_ID=$(gh project field-list BOARD_NUMBER --owner "ORG" --format json --jq '.fields[] | select(.name == "Status") | .options[] | select(.name == "In Progress") | .id')
+       if [ -n "$STATUS_FIELD_ID" ] && [ -n "$OPTION_ID" ]; then
+         PROJECT_ID=$(gh project list --owner "ORG" --format json --jq ".projects[] | select(.number == BOARD_NUMBER) | .id")
+         gh project item-edit --project-id "$PROJECT_ID" --id "$ITEM_ID" --field-id "$STATUS_FIELD_ID" --single-select-option-id "$OPTION_ID"
+       fi
+     fi
+     # If any step above fails: non-blocking, just continue with the comment
+     
+     # Add comment
      gh issue comment "$ISSUE_NUMBER" --repo "ORG/REPO" --body "🔄 **AIDLC Stage: Code Generation Started**
 
      **Unit**: {unit name}
@@ -569,18 +582,32 @@ After the welcome message is displayed, present this prompt to the user:
 8. **MANDATORY**: Log user's response in audit.md with complete raw input
 9. 🔌 **POWER ORCHESTRATION — Code Generation Complete**: If `Auto-sync Board` is `yes` in project-config.md:
    
-   **Step A — Move to "Review" on board**: After user approves code gen but before closing, move the issue to the "Review" column (see `github-integration.md` → Board Sync Flow for the `gh project item-edit` commands).
+   **Step A — Move to "Review" on board**:
+   ```bash
+   ITEM_ID=$(gh project item-list BOARD_NUMBER --owner "ORG" --format json --jq ".items[] | select(.content.number == $ISSUE_NUMBER) | .id")
+   if [ -n "$ITEM_ID" ]; then
+     STATUS_FIELD_ID=$(gh project field-list BOARD_NUMBER --owner "ORG" --format json --jq '.fields[] | select(.name == "Status") | .id')
+     # Try "In Review" first, fall back to "Review"
+     OPTION_ID=$(gh project field-list BOARD_NUMBER --owner "ORG" --format json --jq '.fields[] | select(.name == "Status") | .options[] | select(.name == "In Review" or .name == "Review") | .id' | head -1)
+     if [ -n "$STATUS_FIELD_ID" ] && [ -n "$OPTION_ID" ]; then
+       PROJECT_ID=$(gh project list --owner "ORG" --format json --jq ".projects[] | select(.number == BOARD_NUMBER) | .id")
+       gh project item-edit --project-id "$PROJECT_ID" --id "$ITEM_ID" --field-id "$STATUS_FIELD_ID" --single-select-option-id "$OPTION_ID"
+     fi
+   fi
+   # If move fails: non-blocking, continue with close
+   ```
    
    **Step B — Close with detailed comment**: Close each matching GitHub issue with a **detailed story-specific closing comment** (NOT a generic one-liner):
    ```bash
-   gh issue comment ISSUE_NUMBER --repo "ORG/REPO" --body "## ✅ Implementation Complete
+   cat > /tmp/close-body.md << 'EOF'
+   ## ✅ Implementation Complete
 
    ### What Was Built
    {Describe the specific endpoint/component/feature implemented for THIS story}
 
    ### Files Created/Modified
-   - \`{file_path}\` — {purpose}
-   - \`{file_path}\` — {purpose}
+   - `{file_path}` — {purpose}
+   - `{file_path}` — {purpose}
 
    ### Acceptance Criteria Verified
    - [x] {criterion 1} — verified via {test name or method}
@@ -591,8 +618,12 @@ After the welcome message is displayed, present this prompt to the user:
    - Key tests: {test names relevant to this story}
 
    ---
-   *Closed by Kiro AIDLC — Code Generation approved*"
-   gh issue close ISSUE_NUMBER --repo "ORG/REPO" --reason completed
+   *Closed by Kiro AIDLC — Code Generation approved*
+   EOF
+
+   gh issue comment "$ISSUE_NUMBER" --repo "ORG/REPO" -F /tmp/close-body.md
+   gh issue close "$ISSUE_NUMBER" --repo "ORG/REPO" --reason completed
+   rm -f /tmp/close-body.md
    ```
    **NEVER** use a generic message like "Code Generation Complete" — always include story-specific implementation details, file paths, acceptance criteria verification, and test coverage.
    
@@ -619,7 +650,11 @@ After the welcome message is displayed, present this prompt to the user:
      - Validate any generated `.circleci/config.yml` or CI pipeline configurations
      - Provide pipeline templates if new services need CI/CD setup
      - Check latest pipeline status for the current branch
-   - **GitHub Board Sync** (uses `gh` CLI): If `Auto-sync Board` is `yes`, add a comment to matching issues: `gh issue comment ISSUE_NUMBER --repo "ORG/REPO" --body "🔄 AIDLC Stage: Build & Test Started"`
+   - **GitHub Board Sync** (uses `gh` CLI): If `Auto-sync Board` is `yes`, add a comment to matching issues:
+     ```bash
+     ISSUE_NUMBER=$(gh issue list --repo "ORG/REPO" --label "aidlc:story" --search "[AIDLC Story {id}]" --json number --jq '.[0].number')
+     gh issue comment "$ISSUE_NUMBER" --repo "ORG/REPO" --body "🔄 AIDLC Stage: Build & Test Started"
+     ```
 4. Generate comprehensive build and test instructions:
    - Build instructions for all units
    - Unit test execution instructions

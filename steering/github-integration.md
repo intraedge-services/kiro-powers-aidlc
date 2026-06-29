@@ -25,22 +25,136 @@ The workflow reads `Source Control → Provider` from project-config.md and uses
 **Before ANY `gh` operation in a session**, run this validation exactly once:
 
 ```bash
-# Validate gh auth works (GITHUB_TOKEN env var can override and break keyring auth)
-if ! gh auth status 2>&1 | grep -q "Logged in"; then
-  # Stale GITHUB_TOKEN may be overriding valid keyring credentials
-  unset GITHUB_TOKEN
+# Step 1: Check if gh CLI is installed
+if ! command -v gh &>/dev/null; then
+  # gh NOT INSTALLED — show guided setup
+  GH_STATUS="not_installed"
+else
+  # Step 2: Clear stale GITHUB_TOKEN if present (IDEs often inject invalid ones)
   if ! gh auth status 2>&1 | grep -q "Logged in"; then
-    echo "⚠️ gh not authenticated. Run: gh auth login"
-    # Non-blocking: skip GitHub operations, continue workflow
+    unset GITHUB_TOKEN
+    if ! gh auth status 2>&1 | grep -q "Logged in"; then
+      GH_STATUS="not_authenticated"
+    else
+      GH_STATUS="ok"
+    fi
+  else
+    GH_STATUS="ok"
   fi
 fi
 ```
 
-**Why this exists**: IDEs (including Kiro) may inject a `GITHUB_TOKEN` environment variable that overrides the user's valid keyring-based `gh` login. This causes 401 errors on all `gh` commands. The pre-flight check detects and clears this.
+### If `gh` is NOT installed (`GH_STATUS="not_installed"`)
 
-**When to run**: Once per session, before the first `gh` command. Cache the result — do not re-check on every operation.
+**MANDATORY**: Display this guided setup message to the user and PAUSE the workflow:
 
-**If auth fails after `unset`**: Warn the user and continue the workflow (non-blocking). Do NOT retry indefinitely.
+```markdown
+> ⚠️ **GitHub CLI (`gh`) is not installed**
+>
+> AIDLC uses `gh` to sync stories to your project board, track issue status, and create PRs.
+> Without it, story sync and board updates will be skipped.
+>
+> ---
+>
+> **📦 Install `gh` CLI:**
+>
+> | Platform | Command |
+> |----------|---------|
+> | **macOS** (Homebrew) | `brew install gh` |
+> | **macOS** (no Homebrew) | Download from https://cli.github.com/ |
+> | **Ubuntu/Debian** | `sudo apt install gh` |
+> | **Windows** (winget) | `winget install GitHub.cli` |
+> | **Windows** (choco) | `choco install gh` |
+> | **Any** (conda) | `conda install -c conda-forge gh` |
+>
+> **🔐 Then authenticate:**
+> ```bash
+> gh auth login
+> ```
+> When prompted:
+> - Account: **GitHub.com**
+> - Protocol: **HTTPS** (recommended)
+> - Authenticate with: **Login with a web browser** (easiest)
+> - Scopes: ensure `repo`, `project`, and `read:org` are selected
+>
+> **✅ Verify it works:**
+> ```bash
+> gh auth status
+> ```
+> You should see: `✓ Logged in to github.com account YOUR_USERNAME`
+>
+> ---
+>
+> **Your options:**
+>
+> 🔧 **Install now** — Follow the steps above, then say "continue" to resume
+> ⏭️ **Skip for now** — Continue without GitHub sync (stories won't be tracked on the board)
+```
+
+**After displaying**: Wait for user response.
+- If user says "continue" / "done" / "installed": Re-run the auth check to verify, then proceed.
+- If user says "skip": Set `GH_AVAILABLE=false` in context. Skip ALL GitHub operations for the rest of the session silently (no repeated warnings).
+
+### If `gh` is installed but NOT authenticated (`GH_STATUS="not_authenticated"`)
+
+**MANDATORY**: Display this guided auth message to the user and PAUSE the workflow:
+
+```markdown
+> ⚠️ **GitHub CLI is installed but not authenticated**
+>
+> AIDLC needs `gh` authentication to sync stories, update your board, and create PRs.
+>
+> ---
+>
+> **🔐 Authenticate now:**
+> ```bash
+> gh auth login
+> ```
+> When prompted:
+> - Account: **GitHub.com**
+> - Protocol: **HTTPS**
+> - Authenticate with: **Login with a web browser** (opens browser for OAuth)
+> - Required scopes: `repo`, `project`, `read:org`
+>
+> **💡 If you previously authenticated but it stopped working:**
+> ```bash
+> # Check if a stale GITHUB_TOKEN env var is overriding your login
+> echo $GITHUB_TOKEN
+> # If it shows a value, clear it:
+> unset GITHUB_TOKEN
+> # Then verify:
+> gh auth status
+> ```
+>
+> **✅ Verify:**
+> ```bash
+> gh auth status
+> ```
+> You should see: `✓ Logged in to github.com account YOUR_USERNAME`
+>
+> ---
+>
+> **Your options:**
+>
+> 🔐 **Authenticate now** — Run `gh auth login`, then say "continue"
+> ⏭️ **Skip for now** — Continue without GitHub sync (stories won't be tracked on the board)
+```
+
+**After displaying**: Wait for user response.
+- If user says "continue" / "done" / "authenticated": Re-run auth check, proceed if successful.
+- If user says "skip": Set `GH_AVAILABLE=false`, skip all GitHub operations silently.
+
+### If auth succeeds (`GH_STATUS="ok"`)
+
+Proceed normally. Set `GH_AVAILABLE=true` in context.
+
+### Key Rules
+
+- **Run once per session** — cache the result, don't re-prompt on every `gh` operation
+- **Always PAUSE and wait** — do not silently skip. The user must make an explicit choice
+- **Never block the workflow forever** — always offer the "skip" option
+- **If user skips**: No further GitHub warnings for the entire session. Every GitHub operation checks `GH_AVAILABLE` and skips silently
+- **On retry failure**: If user says "done" but auth still fails, show the error output and offer skip again (max 2 retries)
 
 ## Prerequisites (GitLab)
 
@@ -181,29 +295,48 @@ Todo → In Progress → Review → Done
 
 ### Moving Items on the Project Board
 
-To change an issue's status column, use the GitHub Projects API:
+To change an issue's status column, use the GitHub Projects v2 API via `gh`:
 
 ```bash
-# Step 1: Get the project item ID for this issue
-ITEM_ID=$(gh project item-list PROJECT_NUMBER --owner "ORG" --format json \
+# ─── REUSABLE: Move issue to a target status column ───
+# Inputs: ORG, BOARD_NUMBER, ISSUE_NUMBER, TARGET_STATUS (e.g., "In Progress", "In Review", "Done")
+
+# Step 1: Get the project's node ID from the board number
+PROJECT_ID=$(gh project list --owner "ORG" --format json --jq ".projects[] | select(.number == BOARD_NUMBER) | .id")
+
+# Step 2: Get the project item ID for this issue
+ITEM_ID=$(gh project item-list BOARD_NUMBER --owner "ORG" --format json \
   --jq ".items[] | select(.content.number == $ISSUE_NUMBER) | .id")
 
-# Step 2: Get the Status field ID and option IDs
-STATUS_FIELD_ID=$(gh project field-list PROJECT_NUMBER --owner "ORG" --format json \
+# Step 3: Get the Status field ID
+STATUS_FIELD_ID=$(gh project field-list BOARD_NUMBER --owner "ORG" --format json \
   --jq '.fields[] | select(.name == "Status") | .id')
 
-# Step 3: Get the target status option ID
-# (Replace "In Progress" with the target column name)
-OPTION_ID=$(gh project field-list PROJECT_NUMBER --owner "ORG" --format json \
-  --jq '.fields[] | select(.name == "Status") | .options[] | select(.name == "In Progress") | .id')
+# Step 4: Get the target status option ID
+OPTION_ID=$(gh project field-list BOARD_NUMBER --owner "ORG" --format json \
+  --jq ".fields[] | select(.name == \"Status\") | .options[] | select(.name == \"$TARGET_STATUS\") | .id")
 
-# Step 4: Update the item's status
-gh project item-edit --project-id PROJECT_ID --id "$ITEM_ID" --field-id "$STATUS_FIELD_ID" --single-select-option-id "$OPTION_ID"
+# Step 5: Update the item's status
+if [ -n "$PROJECT_ID" ] && [ -n "$ITEM_ID" ] && [ -n "$STATUS_FIELD_ID" ] && [ -n "$OPTION_ID" ]; then
+  gh project item-edit --project-id "$PROJECT_ID" --id "$ITEM_ID" \
+    --field-id "$STATUS_FIELD_ID" --single-select-option-id "$OPTION_ID"
+else
+  echo "⚠️ Could not move issue #$ISSUE_NUMBER to '$TARGET_STATUS' — missing project data"
+fi
 ```
 
-**Fallback**: If project field commands fail (permissions, project type mismatch), fall back to comment-only updates. Board status is non-blocking — never fail the workflow over a board move.
+**Where values come from**:
+- `ORG` → from project-config.md `Org/Owner`
+- `BOARD_NUMBER` → from project-config.md `Board ID` (numeric, e.g., `7`)
+- `ISSUE_NUMBER` → from the `gh issue list` search for story ID
+- `TARGET_STATUS` → the column name to move to
 
-**Column name matching**: Common GitHub Projects column names are "Todo", "In Progress", "In Review", "Done". If a column doesn't exist, skip the move and log a warning.
+**Fallback**: If any step fails (permissions, project type mismatch, column doesn't exist), fall back to comment-only updates. Board status is **non-blocking** — never fail the workflow over a board move.
+
+**Column name matching**: Common GitHub Projects column names are "Todo", "In Progress", "In Review", "Done". If the exact name doesn't match, try common alternatives:
+- "In Progress" ↔ "Working" ↔ "Active"
+- "In Review" ↔ "Review" ↔ "Under Review"
+- If no match found: skip the move, log a warning, continue
 
 ### Stage → Board Action Mapping
 
@@ -225,8 +358,18 @@ If no match found: log warning, skip (non-blocking).
 
 ### Commenting on an Issue
 
+For single-line comments, inline `--body` is acceptable:
 ```bash
 gh issue comment "$ISSUE_NUMBER" --repo "ORG/REPO" --body "🔄 Code Generation Started"
+```
+
+For multi-line comments, ALWAYS use file input:
+```bash
+cat > /tmp/comment.md << 'EOF'
+{multi-line comment content}
+EOF
+gh issue comment "$ISSUE_NUMBER" --repo "ORG/REPO" -F /tmp/comment.md
+rm -f /tmp/comment.md
 ```
 
 ### Closing an Issue
@@ -397,12 +540,19 @@ The PR description MUST be auto-populated from AIDLC artifacts. Use this structu
 
 ### CLI Command
 
+**ALWAYS use file input for PR body** (same rule as issue creation):
 ```bash
+cat > /tmp/pr-body.md << 'EOF'
+{PR body from template above}
+EOF
+
 gh pr create --repo "ORG/REPO" \
   --title "{concise title — max 70 chars}" \
-  --body "PR_BODY_FROM_TEMPLATE_ABOVE" \
+  -F /tmp/pr-body.md \
   --base main \
   --head CURRENT_BRANCH
+
+rm -f /tmp/pr-body.md
 ```
 
 ### Rules

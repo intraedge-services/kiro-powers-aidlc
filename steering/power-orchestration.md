@@ -54,11 +54,26 @@ This file is auto-included in every interaction. The orchestration checkpoints b
    ```
 3. For each NEW user story (not already created):
    ```bash
+   cat > /tmp/issue-body.md << 'EOF'
+   ## User Story
+
+   {description in As a/I want/So that format}
+
+   ## Acceptance Criteria
+
+   {criteria as checkboxes}
+
+   ---
+   *Created by Kiro AIDLC*
+   EOF
+
    gh issue create --repo "ORG/REPO" \
      --title "[AIDLC Story {id}] {story title}" \
-     --body "## User Story\n\n{description}\n\n## Acceptance Criteria\n\n{criteria as checkboxes}\n\n---\n*Created by Kiro AIDLC*" \
+     -F /tmp/issue-body.md \
      --label "aidlc:story" \
+     --label "feature:{feature_area_slug}" \
      --assignee "TEAM_LEAD"
+   rm -f /tmp/issue-body.md
    ```
 4. If `Board Provider` is not `none`, add each issue to the board:
    ```bash
@@ -88,17 +103,25 @@ This file is auto-included in every interaction. The orchestration checkpoints b
 
 **MANDATORY**: Before writing ANY code in this unit, check ALL categories below and activate the relevant powers.
 
-**Check `project-management`**: If `Auto-sync Board` is `yes` in project-config.md, update the matching issue using the provider's CLI:
-```bash
-# GitHub:
-gh issue comment ISSUE_NUMBER --repo "ORG/REPO" --body "COMMENT_BODY"
-# GitLab:
-glab issue note ISSUE_NUMBER --repo "ORG/REPO" -m "COMMENT_BODY"
-```
-(Find the issue by searching: `gh issue list --repo "ORG/REPO" --label "aidlc:story" --search "[AIDLC Story {id}]" --json number,url`)
+**Check `project-management`**: If `Auto-sync Board` is `yes` in project-config.md, find the matching issue, **move it to "In Progress"** on the board, and add a detailed comment:
 
-**Comment body MUST include** (not just a one-liner):
-```markdown
+```bash
+# Find the issue
+ISSUE_NUMBER=$(gh issue list --repo "ORG/REPO" --label "aidlc:story" --search "[AIDLC Story {id}]" --json number --jq '.[0].number')
+
+# Move to "In Progress" on the project board
+ITEM_ID=$(gh project item-list BOARD_NUMBER --owner "ORG" --format json --jq ".items[] | select(.content.number == $ISSUE_NUMBER) | .id")
+if [ -n "$ITEM_ID" ]; then
+  STATUS_FIELD_ID=$(gh project field-list BOARD_NUMBER --owner "ORG" --format json --jq '.fields[] | select(.name == "Status") | .id')
+  OPTION_ID=$(gh project field-list BOARD_NUMBER --owner "ORG" --format json --jq '.fields[] | select(.name == "Status") | .options[] | select(.name == "In Progress") | .id')
+  if [ -n "$STATUS_FIELD_ID" ] && [ -n "$OPTION_ID" ]; then
+    PROJECT_ID=$(gh project list --owner "ORG" --format json --jq ".projects[] | select(.number == BOARD_NUMBER) | .id")
+    gh project item-edit --project-id "$PROJECT_ID" --id "$ITEM_ID" --field-id "$STATUS_FIELD_ID" --single-select-option-id "$OPTION_ID"
+  fi
+fi
+
+# Add comment (use file input for multi-line)
+cat > /tmp/codegen-start.md << 'EOF'
 🔄 **AIDLC Stage: Code Generation Started**
 
 **Unit**: {unit name}
@@ -106,10 +129,14 @@ glab issue note ISSUE_NUMBER --repo "ORG/REPO" -m "COMMENT_BODY"
 **Planned deliverables**:
 - {file/component 1}
 - {file/component 2}
-- {file/component N}
 
-**Approach**: {1-2 sentences on implementation approach from the code gen plan}
+**Approach**: {1-2 sentences from the code gen plan}
+EOF
+gh issue comment "$ISSUE_NUMBER" --repo "ORG/REPO" -F /tmp/codegen-start.md
+rm -f /tmp/codegen-start.md
 ```
+
+**If any step fails**: Non-blocking — log a warning, continue with code generation.
 
 **Check `data-engineering`**: If registered AND the unit involves Glue/EMR/Athena/Spark, activate the data-engineering power for code patterns. Note: General Python ML code (scikit-learn, pandas, numpy) does NOT trigger this — only AWS data processing services.
 
@@ -127,35 +154,45 @@ glab issue note ISSUE_NUMBER --repo "ORG/REPO" -m "COMMENT_BODY"
 
 **Trigger**: Code Generation stage approved by user.
 
-**Check `project-management`**: If `Auto-sync Board` is `yes` in project-config.md, close the matching issue using the provider's CLI:
-```bash
-# GitHub:
-gh issue comment ISSUE_NUMBER --repo "ORG/REPO" --body "COMMENT_BODY"
-gh issue close ISSUE_NUMBER --repo "ORG/REPO" --reason completed
-# GitLab:
-glab issue close ISSUE_NUMBER --repo "ORG/REPO"
-```
+**Check `project-management`**: If `Auto-sync Board` is `yes` in project-config.md, **move to "Review"** then close the matching issue:
 
-**Comment body MUST include** (not just a one-liner):
-```markdown
+```bash
+# Move to "Review" on the project board
+ITEM_ID=$(gh project item-list BOARD_NUMBER --owner "ORG" --format json --jq ".items[] | select(.content.number == $ISSUE_NUMBER) | .id")
+if [ -n "$ITEM_ID" ]; then
+  STATUS_FIELD_ID=$(gh project field-list BOARD_NUMBER --owner "ORG" --format json --jq '.fields[] | select(.name == "Status") | .id')
+  OPTION_ID=$(gh project field-list BOARD_NUMBER --owner "ORG" --format json --jq '.fields[] | select(.name == "Status") | .options[] | select(.name == "In Review" or .name == "Review") | .id' | head -1)
+  if [ -n "$STATUS_FIELD_ID" ] && [ -n "$OPTION_ID" ]; then
+    PROJECT_ID=$(gh project list --owner "ORG" --format json --jq ".projects[] | select(.number == BOARD_NUMBER) | .id")
+    gh project item-edit --project-id "$PROJECT_ID" --id "$ITEM_ID" --field-id "$STATUS_FIELD_ID" --single-select-option-id "$OPTION_ID"
+  fi
+fi
+
+# Close with detailed comment (use file input)
+cat > /tmp/codegen-complete.md << 'EOF'
 ✅ **Code Generation Complete — Implementation approved**
 
 **Unit**: {unit name}
 **What was built**:
 - {key file/component 1 — brief purpose}
 - {key file/component 2 — brief purpose}
-- {key file/component N — brief purpose}
 
 **Acceptance Criteria** (checked off):
 - [x] {criterion 1 — from the original story}
 - [x] {criterion 2}
 
 **Key decisions**: {1-2 sentences on notable implementation choices}
-**Tests**: {what test coverage was added, if any}
-**Next**: {what comes next — e.g., "Proceeding to Build & Test" or "Next unit: X"}
+**Tests**: {what test coverage was added}
+**Next**: {what comes next — e.g., "Proceeding to Build & Test"}
+EOF
+gh issue comment "$ISSUE_NUMBER" --repo "ORG/REPO" -F /tmp/codegen-complete.md
+gh issue close "$ISSUE_NUMBER" --repo "ORG/REPO" --reason completed
+rm -f /tmp/codegen-complete.md
 ```
 
 If the project board is configured, the board item moves to "Done" automatically when the issue is closed.
+
+**If any step fails**: Non-blocking — log a warning, continue with the workflow.
 
 ### Infrastructure Design Stage (Construction)
 
