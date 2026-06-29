@@ -25,22 +25,136 @@ The workflow reads `Source Control → Provider` from project-config.md and uses
 **Before ANY `gh` operation in a session**, run this validation exactly once:
 
 ```bash
-# Validate gh auth works (GITHUB_TOKEN env var can override and break keyring auth)
-if ! gh auth status 2>&1 | grep -q "Logged in"; then
-  # Stale GITHUB_TOKEN may be overriding valid keyring credentials
-  unset GITHUB_TOKEN
+# Step 1: Check if gh CLI is installed
+if ! command -v gh &>/dev/null; then
+  # gh NOT INSTALLED — show guided setup
+  GH_STATUS="not_installed"
+else
+  # Step 2: Clear stale GITHUB_TOKEN if present (IDEs often inject invalid ones)
   if ! gh auth status 2>&1 | grep -q "Logged in"; then
-    echo "⚠️ gh not authenticated. Run: gh auth login"
-    # Non-blocking: skip GitHub operations, continue workflow
+    unset GITHUB_TOKEN
+    if ! gh auth status 2>&1 | grep -q "Logged in"; then
+      GH_STATUS="not_authenticated"
+    else
+      GH_STATUS="ok"
+    fi
+  else
+    GH_STATUS="ok"
   fi
 fi
 ```
 
-**Why this exists**: IDEs (including Kiro) may inject a `GITHUB_TOKEN` environment variable that overrides the user's valid keyring-based `gh` login. This causes 401 errors on all `gh` commands. The pre-flight check detects and clears this.
+### If `gh` is NOT installed (`GH_STATUS="not_installed"`)
 
-**When to run**: Once per session, before the first `gh` command. Cache the result — do not re-check on every operation.
+**MANDATORY**: Display this guided setup message to the user and PAUSE the workflow:
 
-**If auth fails after `unset`**: Warn the user and continue the workflow (non-blocking). Do NOT retry indefinitely.
+```markdown
+> ⚠️ **GitHub CLI (`gh`) is not installed**
+>
+> AIDLC uses `gh` to sync stories to your project board, track issue status, and create PRs.
+> Without it, story sync and board updates will be skipped.
+>
+> ---
+>
+> **📦 Install `gh` CLI:**
+>
+> | Platform | Command |
+> |----------|---------|
+> | **macOS** (Homebrew) | `brew install gh` |
+> | **macOS** (no Homebrew) | Download from https://cli.github.com/ |
+> | **Ubuntu/Debian** | `sudo apt install gh` |
+> | **Windows** (winget) | `winget install GitHub.cli` |
+> | **Windows** (choco) | `choco install gh` |
+> | **Any** (conda) | `conda install -c conda-forge gh` |
+>
+> **🔐 Then authenticate:**
+> ```bash
+> gh auth login
+> ```
+> When prompted:
+> - Account: **GitHub.com**
+> - Protocol: **HTTPS** (recommended)
+> - Authenticate with: **Login with a web browser** (easiest)
+> - Scopes: ensure `repo`, `project`, and `read:org` are selected
+>
+> **✅ Verify it works:**
+> ```bash
+> gh auth status
+> ```
+> You should see: `✓ Logged in to github.com account YOUR_USERNAME`
+>
+> ---
+>
+> **Your options:**
+>
+> 🔧 **Install now** — Follow the steps above, then say "continue" to resume
+> ⏭️ **Skip for now** — Continue without GitHub sync (stories won't be tracked on the board)
+```
+
+**After displaying**: Wait for user response.
+- If user says "continue" / "done" / "installed": Re-run the auth check to verify, then proceed.
+- If user says "skip": Set `GH_AVAILABLE=false` in context. Skip ALL GitHub operations for the rest of the session silently (no repeated warnings).
+
+### If `gh` is installed but NOT authenticated (`GH_STATUS="not_authenticated"`)
+
+**MANDATORY**: Display this guided auth message to the user and PAUSE the workflow:
+
+```markdown
+> ⚠️ **GitHub CLI is installed but not authenticated**
+>
+> AIDLC needs `gh` authentication to sync stories, update your board, and create PRs.
+>
+> ---
+>
+> **🔐 Authenticate now:**
+> ```bash
+> gh auth login
+> ```
+> When prompted:
+> - Account: **GitHub.com**
+> - Protocol: **HTTPS**
+> - Authenticate with: **Login with a web browser** (opens browser for OAuth)
+> - Required scopes: `repo`, `project`, `read:org`
+>
+> **💡 If you previously authenticated but it stopped working:**
+> ```bash
+> # Check if a stale GITHUB_TOKEN env var is overriding your login
+> echo $GITHUB_TOKEN
+> # If it shows a value, clear it:
+> unset GITHUB_TOKEN
+> # Then verify:
+> gh auth status
+> ```
+>
+> **✅ Verify:**
+> ```bash
+> gh auth status
+> ```
+> You should see: `✓ Logged in to github.com account YOUR_USERNAME`
+>
+> ---
+>
+> **Your options:**
+>
+> 🔐 **Authenticate now** — Run `gh auth login`, then say "continue"
+> ⏭️ **Skip for now** — Continue without GitHub sync (stories won't be tracked on the board)
+```
+
+**After displaying**: Wait for user response.
+- If user says "continue" / "done" / "authenticated": Re-run auth check, proceed if successful.
+- If user says "skip": Set `GH_AVAILABLE=false`, skip all GitHub operations silently.
+
+### If auth succeeds (`GH_STATUS="ok"`)
+
+Proceed normally. Set `GH_AVAILABLE=true` in context.
+
+### Key Rules
+
+- **Run once per session** — cache the result, don't re-prompt on every `gh` operation
+- **Always PAUSE and wait** — do not silently skip. The user must make an explicit choice
+- **Never block the workflow forever** — always offer the "skip" option
+- **If user skips**: No further GitHub warnings for the entire session. Every GitHub operation checks `GH_AVAILABLE` and skips silently
+- **On retry failure**: If user says "done" but auth still fails, show the error output and offer skip again (max 2 retries)
 
 ## Prerequisites (GitLab)
 

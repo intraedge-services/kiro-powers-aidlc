@@ -335,7 +335,7 @@ After the welcome message is displayed, present this prompt to the user:
           ```
        6. Report to user: "✅ Created {N} issues on the GitHub project board. Continue to next stage?"
        7. **Wait for user confirmation before proceeding to Workflow Planning**
-    d. If `gh` CLI is not available: warn user ("⚠️ `gh` not installed or not authenticated. Run `gh auth login`.") and continue (non-blocking)
+    d. If `gh` CLI is not available or not authenticated: Follow the guided setup flow defined in `github-integration.md` → "MANDATORY: Auth Pre-Flight Check". Display the appropriate setup/auth message, wait for user response. If user chooses to skip, proceed to Workflow Planning without sync.
     
     **SELF-CHECK**: Before starting Workflow Planning, ask yourself: "Did I sync stories to GitHub?" If the answer is NO and the config IS set up — STOP and go back to complete step 11.
 
