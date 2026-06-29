@@ -3,6 +3,28 @@ inclusion: always
 ---
 # Pull Request Workflow — Steering Rules
 
+## MANDATORY: Pre-Push Write Access Check
+
+**Before the FIRST `git push` in a session**, verify the user has write access to the target repo:
+
+```bash
+# Check write permission before attempting push
+PERMISSION=$(gh repo view "ORG/REPO" --json viewerPermission --jq '.viewerPermission' 2>/dev/null)
+if [ "$PERMISSION" != "WRITE" ] && [ "$PERMISSION" != "MAINTAIN" ] && [ "$PERMISSION" != "ADMIN" ]; then
+  echo "⚠️ You don't have write access to ORG/REPO (current permission: ${PERMISSION:-none})"
+  echo "Options:"
+  echo "  1. Fork the repo: gh repo fork ORG/REPO --clone=false"
+  echo "  2. Request access from the org admin"
+  echo "  3. Push to a personal repo instead"
+fi
+```
+
+**When to run**: Once per session, before the first `git push`. Do NOT attempt the push if permission is insufficient — it produces confusing 403 errors.
+
+**If permission check fails** (e.g., `gh` not available): warn the user and attempt the push anyway (let git report the error naturally).
+
+---
+
 ## PR Creation
 
 When creating a pull request via `gh` CLI:

@@ -20,6 +20,28 @@ The workflow reads `Source Control → Provider` from project-config.md and uses
 - Project board created in the GitHub org
 - `.kiro/steering/project-config.md` with Source Control + Project Tracking filled in
 
+## MANDATORY: Auth Pre-Flight Check
+
+**Before ANY `gh` operation in a session**, run this validation exactly once:
+
+```bash
+# Validate gh auth works (GITHUB_TOKEN env var can override and break keyring auth)
+if ! gh auth status 2>&1 | grep -q "Logged in"; then
+  # Stale GITHUB_TOKEN may be overriding valid keyring credentials
+  unset GITHUB_TOKEN
+  if ! gh auth status 2>&1 | grep -q "Logged in"; then
+    echo "⚠️ gh not authenticated. Run: gh auth login"
+    # Non-blocking: skip GitHub operations, continue workflow
+  fi
+fi
+```
+
+**Why this exists**: IDEs (including Kiro) may inject a `GITHUB_TOKEN` environment variable that overrides the user's valid keyring-based `gh` login. This causes 401 errors on all `gh` commands. The pre-flight check detects and clears this.
+
+**When to run**: Once per session, before the first `gh` command. Cache the result — do not re-check on every operation.
+
+**If auth fails after `unset`**: Warn the user and continue the workflow (non-blocking). Do NOT retry indefinitely.
+
 ## Prerequisites (GitLab)
 
 - `glab` CLI installed ([https://gitlab.com/gitlab-org/cli](https://gitlab.com/gitlab-org/cli))
@@ -50,10 +72,12 @@ If result > 0: skip that story (already exists).
 
 ### Issue Creation
 
+**ALWAYS use file input (`-F`) for issue body** — never use inline `--body "..."` for multi-line content. Inline body breaks with shell escaping and strips markdown formatting.
+
 ```bash
-gh issue create --repo "ORG/REPO" \
-  --title "[AIDLC Story {story_id}] {story_title}" \
-  --body "## User Story
+# Write body to temp file first (preserves newlines, markdown, special chars)
+cat > /tmp/issue-body.md << 'EOF'
+## User Story
 
 {full story text in As a/I want/So that format}
 
@@ -69,17 +93,66 @@ gh issue create --repo "ORG/REPO" \
 - **Source**: aidlc-docs/inception/user-stories/stories.md
 
 ---
-*Created by Kiro AIDLC*" \
+*Created by Kiro AIDLC*
+EOF
+
+# Create issue using file input
+gh issue create --repo "ORG/REPO" \
+  --title "[AIDLC Story {story_id}] {story_title}" \
+  -F /tmp/issue-body.md \
   --label "aidlc:story" \
   --assignee "TEAM_LEAD"
+
+# Clean up
+rm -f /tmp/issue-body.md
 ```
+
+**Rule**: If content has newlines, ALWAYS use `-F /tmp/file.md`. This matches the same rule enforced in `pr-workflow.md`.
 
 ### Label Auto-Creation
 
-If the `aidlc:story` label doesn't exist yet:
+**Create labels before issue creation.** The AIDLC workflow uses two types of labels:
+
+**1. Story label** (one-time, shared across all stories):
 ```bash
-gh label create "aidlc:story" --repo "ORG/REPO" --description "AIDLC User Story" --color "0e8a16"
+gh label create "aidlc:story" --repo "ORG/REPO" --description "AIDLC User Story" --color "0e8a16" 2>/dev/null || true
 ```
+
+**2. Feature-area labels** (one per feature area, with distinct colors):
+
+Each user story has a Feature Area (from stories.md). Create a colored label for each unique area:
+
+```bash
+# Color palette for feature-area labels (cycle through these)
+# Colors chosen for high contrast and visual distinction on GitHub
+COLORS=("d93f0b" "0075ca" "e4e669" "7057ff" "008672" "fbca04" "b60205" "1d76db" "5319e7" "0e8a16")
+
+# For each unique feature area found in stories.md:
+LABEL_NAME="feature:${feature_area_slug}"  # lowercase, hyphens (e.g., "feature:data-catalog")
+COLOR="${COLORS[$index % ${#COLORS[@]}]}"
+
+gh label create "$LABEL_NAME" --repo "ORG/REPO" \
+  --description "Feature area: ${feature_area}" \
+  --color "$COLOR" 2>/dev/null || true
+```
+
+**Feature area slug rules**:
+- Lowercase the feature area name
+- Replace spaces with hyphens
+- Remove special characters
+- Example: "Data Catalog" → `feature:data-catalog`, "Error Handling" → `feature:error-handling`
+
+**When creating issues**, attach BOTH labels:
+```bash
+gh issue create --repo "ORG/REPO" \
+  --title "[AIDLC Story {story_id}] {story_title}" \
+  -F /tmp/issue-body.md \
+  --label "aidlc:story" \
+  --label "feature:{feature_area_slug}" \
+  --assignee "TEAM_LEAD"
+```
+
+This produces the colorful multi-label display seen on GitHub issue lists (green `aidlc:story` + colored `feature:*` per area).
 
 ### Board Placement
 
@@ -91,13 +164,55 @@ The board's default status ("Todo") applies automatically.
 
 ## Board Sync Flow
 
+### Project Board Status Transitions
+
+Issues move through board columns at each AIDLC stage transition:
+
+```
+Todo → In Progress → Review → Done
+```
+
+| AIDLC Event | Board Status | Comment | How |
+|-------------|-------------|---------|-----|
+| Issue created | **Todo** | (automatic on board add) | Default column |
+| Code Gen starts | **In Progress** | 🔄 Code Generation Started | Move item |
+| Code Gen approved (user says "Continue") | **Review** | ✅ Code ready for review | Move item |
+| Build & Test passes OR issue closed | **Done** | ✅ Implementation Complete | Close issue (auto-moves) |
+
+### Moving Items on the Project Board
+
+To change an issue's status column, use the GitHub Projects API:
+
+```bash
+# Step 1: Get the project item ID for this issue
+ITEM_ID=$(gh project item-list PROJECT_NUMBER --owner "ORG" --format json \
+  --jq ".items[] | select(.content.number == $ISSUE_NUMBER) | .id")
+
+# Step 2: Get the Status field ID and option IDs
+STATUS_FIELD_ID=$(gh project field-list PROJECT_NUMBER --owner "ORG" --format json \
+  --jq '.fields[] | select(.name == "Status") | .id')
+
+# Step 3: Get the target status option ID
+# (Replace "In Progress" with the target column name)
+OPTION_ID=$(gh project field-list PROJECT_NUMBER --owner "ORG" --format json \
+  --jq '.fields[] | select(.name == "Status") | .options[] | select(.name == "In Progress") | .id')
+
+# Step 4: Update the item's status
+gh project item-edit --project-id PROJECT_ID --id "$ITEM_ID" --field-id "$STATUS_FIELD_ID" --single-select-option-id "$OPTION_ID"
+```
+
+**Fallback**: If project field commands fail (permissions, project type mismatch), fall back to comment-only updates. Board status is non-blocking — never fail the workflow over a board move.
+
+**Column name matching**: Common GitHub Projects column names are "Todo", "In Progress", "In Review", "Done". If a column doesn't exist, skip the move and log a warning.
+
 ### Stage → Board Action Mapping
 
-| AIDLC Event | `gh` Command | Comment Text |
-|-------------|-------------|--------------|
-| Code Gen starts | `gh issue comment` | 🔄 Code Generation Started |
-| Code Gen approved | `gh issue close --reason completed` | ✅ Code Generation Complete |
-| Build & Test starts | `gh issue comment` | 🔄 Build & Test Started |
+| AIDLC Event | `gh` Command | Comment Text | Board Status |
+|-------------|-------------|--------------|-------------|
+| Code Gen starts | `gh issue comment` + move | 🔄 Code Generation Started | **In Progress** |
+| Code Gen approved | `gh issue comment` + move | ✅ Ready for Review | **Review** |
+| Build & Test starts | `gh issue comment` | 🔄 Build & Test Started | (stays in Review) |
+| Issue closed | `gh issue close` | ✅ Implementation Complete | **Done** (auto) |
 
 ### Finding the Matching Issue
 
@@ -121,14 +236,16 @@ When closing an issue after code generation is approved, the closing comment MUS
 **Closing Comment Template:**
 
 ```bash
-gh issue comment "$ISSUE_NUMBER" --repo "ORG/REPO" --body "## ✅ Implementation Complete
+# Write closing comment to temp file (ALWAYS use file input for multi-line)
+cat > /tmp/close-body.md << 'EOF'
+## ✅ Implementation Complete
 
 ### What Was Built
 {Describe the specific feature/endpoint/component that was implemented for THIS story}
 
 ### Files Created/Modified
-- \`{file_path_1}\` — {what it does}
-- \`{file_path_2}\` — {what it does}
+- `{file_path_1}` — {what it does}
+- `{file_path_2}` — {what it does}
 
 ### Acceptance Criteria Verified
 - [x] {criterion 1 — how it was verified}
@@ -140,21 +257,26 @@ gh issue comment "$ISSUE_NUMBER" --repo "ORG/REPO" --body "## ✅ Implementation
 - Key test cases: {brief list of what's tested}
 
 ---
-*Closed by Kiro AIDLC — Code Generation approved*"
+*Closed by Kiro AIDLC — Code Generation approved*
+EOF
+
+gh issue comment "$ISSUE_NUMBER" --repo "ORG/REPO" -F /tmp/close-body.md
 gh issue close "$ISSUE_NUMBER" --repo "ORG/REPO" --reason completed
+rm -f /tmp/close-body.md
 ```
 
 **Example — for a "Create a Task" story:**
 ```bash
-gh issue comment "$ISSUE_NUMBER" --repo "ORG/REPO" --body "## ✅ Implementation Complete
+cat > /tmp/close-body.md << 'EOF'
+## ✅ Implementation Complete
 
 ### What Was Built
 POST /tasks endpoint that creates a new task with auto-generated UUID, default status 'todo', and ISO 8601 timestamp.
 
 ### Files Created/Modified
-- \`app/routes.py\` — POST /tasks route handler with 201 response
-- \`app/models.py\` — TaskCreate schema (title required, description optional)
-- \`app/store.py\` — create_task() method with UUID generation
+- `app/routes.py` — POST /tasks route handler with 201 response
+- `app/models.py` — TaskCreate schema (title required, description optional)
+- `app/store.py` — create_task() method with UUID generation
 
 ### Acceptance Criteria Verified
 - [x] POST /tasks returns 201 with the created task — verified via test_create_task_with_title
@@ -167,8 +289,12 @@ POST /tasks endpoint that creates a new task with auto-generated UUID, default s
 - Key test cases: valid creation, creation with description, missing title (422), empty title (422)
 
 ---
-*Closed by Kiro AIDLC — Code Generation approved*"
+*Closed by Kiro AIDLC — Code Generation approved*
+EOF
+
+gh issue comment "$ISSUE_NUMBER" --repo "ORG/REPO" -F /tmp/close-body.md
 gh issue close "$ISSUE_NUMBER" --repo "ORG/REPO" --reason completed
+rm -f /tmp/close-body.md
 ```
 
 **Rules for Closing Comments:**

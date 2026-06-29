@@ -13,6 +13,15 @@ The AI model intelligently assesses what stages are needed based on:
 ## MANDATORY: Rule Details Loading
 **CRITICAL**: When performing any phase, you MUST read and use relevant content from workflow files in `workflows/` directory.
 
+**Path Resolution**: The setup script installs workflow files to `.kiro/aws-aidlc-rule-details/` in the target workspace. All references to `workflows/` in this document map to that installed path:
+- `workflows/common/` → `.kiro/aws-aidlc-rule-details/common/`
+- `workflows/inception/` → `.kiro/aws-aidlc-rule-details/inception/`
+- `workflows/construction/` → `.kiro/aws-aidlc-rule-details/construction/`
+- `workflows/operations/` → `.kiro/aws-aidlc-rule-details/operations/`
+- `workflows/extensions/` → `.kiro/aws-aidlc-rule-details/extensions/`
+
+If `.kiro/aws-aidlc-rule-details/` does not exist, fall back to `workflows/` relative to the power source directory.
+
 **Common Rules**: ALWAYS load common rules at workflow start:
 - Load `common/process-overview.md` for workflow overview
 - Load `common/session-continuity.md` for session resumption guidance
@@ -287,24 +296,45 @@ After the welcome message is displayed, present this prompt to the user:
     b. **If NO** (config missing, placeholders, or Auto-create is 'no'): Skip silently, proceed to Workflow Planning.
     c. **If YES**:
        1. Read the generated `aidlc-docs/inception/user-stories/stories.md`
-       2. Check for duplicate issues:
+       2. **Create feature-area labels** (see `github-integration.md` → Label Auto-Creation):
+          - Extract unique feature areas from stories.md
+          - Create a colored `feature:{area-slug}` label for each (use the color palette defined in github-integration.md)
+          - Also ensure `aidlc:story` label exists
+       3. Check for duplicate issues:
           ```bash
           gh issue list --repo "ORG/REPO" --label "aidlc:story" --json number,title
           ```
-       3. For each NEW user story (not already created):
+       4. For each NEW user story (not already created), write body to temp file and create with both labels:
           ```bash
+          cat > /tmp/issue-body.md << 'EOF'
+          ## User Story
+          {description in As a/I want/So that format}
+
+          ## Acceptance Criteria
+          {criteria as checkboxes}
+
+          ## Traceability
+          - **Story ID**: {id}
+          - **Feature Area**: {feature_area}
+
+          ---
+          *Created by Kiro AIDLC*
+          EOF
+
           gh issue create --repo "ORG/REPO" \
             --title "[AIDLC Story {id}] {story title}" \
-            --body "## User Story\n\n{description}\n\n## Acceptance Criteria\n\n{criteria as checkboxes}\n\n---\n*Created by Kiro AIDLC*" \
+            -F /tmp/issue-body.md \
             --label "aidlc:story" \
+            --label "feature:{feature_area_slug}" \
             --assignee "TEAM_LEAD"
+          rm -f /tmp/issue-body.md
           ```
-       4. Add each issue to the project board:
+       5. Add each issue to the project board:
           ```bash
           gh project item-add PROJECT_NUMBER --owner "ORG" --url ISSUE_URL
           ```
-       5. Report to user: "✅ Created {N} issues on the GitHub project board. Continue to next stage?"
-       6. **Wait for user confirmation before proceeding to Workflow Planning**
+       6. Report to user: "✅ Created {N} issues on the GitHub project board. Continue to next stage?"
+       7. **Wait for user confirmation before proceeding to Workflow Planning**
     d. If `gh` CLI is not available: warn user ("⚠️ `gh` not installed or not authenticated. Run `gh auth login`.") and continue (non-blocking)
     
     **SELF-CHECK**: Before starting Workflow Planning, ask yourself: "Did I sync stories to GitHub?" If the answer is NO and the config IS set up — STOP and go back to complete step 11.
@@ -513,10 +543,12 @@ After the welcome message is displayed, present this prompt to the user:
 1. **MANDATORY**: Log any user input during this stage in audit.md
 2. Load all steps from `construction/code-generation.md`
 3. 🔌 **POWER ORCHESTRATION — Code Generation Start (MANDATORY CHECK)**: Before generating ANY code, check the power registry:
-   - **GitHub Board Sync** (uses `gh` CLI): If `Auto-sync Board` is `yes` in project-config.md, find the matching GitHub issue and add a detailed comment:
+   - **GitHub Board Sync** (uses `gh` CLI): If `Auto-sync Board` is `yes` in project-config.md, find the matching GitHub issue, move it to "In Progress" on the board, and add a detailed comment:
      ```bash
-     gh issue list --repo "ORG/REPO" --label "aidlc:story" --search "[AIDLC Story {id}]" --json number --jq '.[0].number'
-     gh issue comment ISSUE_NUMBER --repo "ORG/REPO" --body "🔄 **AIDLC Stage: Code Generation Started**
+     ISSUE_NUMBER=$(gh issue list --repo "ORG/REPO" --label "aidlc:story" --search "[AIDLC Story {id}]" --json number --jq '.[0].number')
+     # Move to "In Progress" on board (see github-integration.md for full project item-edit commands)
+     # Then add comment:
+     gh issue comment "$ISSUE_NUMBER" --repo "ORG/REPO" --body "🔄 **AIDLC Stage: Code Generation Started**
 
      **Unit**: {unit name}
      **Scope**: {what this unit implements}
@@ -535,7 +567,11 @@ After the welcome message is displayed, present this prompt to the user:
 6. **MANDATORY**: Present standardized 2-option completion message as defined in code-generation.md - DO NOT use emergent behavior
 7. **Wait for Explicit Approval**: User must choose between "Request Changes" or "Continue to Next Stage" - DO NOT PROCEED until user confirms
 8. **MANDATORY**: Log user's response in audit.md with complete raw input
-9. 🔌 **POWER ORCHESTRATION — Code Generation Complete**: If `Auto-sync Board` is `yes` in project-config.md, close each matching GitHub issue with a **detailed story-specific closing comment** (NOT a generic one-liner):
+9. 🔌 **POWER ORCHESTRATION — Code Generation Complete**: If `Auto-sync Board` is `yes` in project-config.md:
+   
+   **Step A — Move to "Review" on board**: After user approves code gen but before closing, move the issue to the "Review" column (see `github-integration.md` → Board Sync Flow for the `gh project item-edit` commands).
+   
+   **Step B — Close with detailed comment**: Close each matching GitHub issue with a **detailed story-specific closing comment** (NOT a generic one-liner):
    ```bash
    gh issue comment ISSUE_NUMBER --repo "ORG/REPO" --body "## ✅ Implementation Complete
 
@@ -559,7 +595,18 @@ After the welcome message is displayed, present this prompt to the user:
    gh issue close ISSUE_NUMBER --repo "ORG/REPO" --reason completed
    ```
    **NEVER** use a generic message like "Code Generation Complete" — always include story-specific implementation details, file paths, acceptance criteria verification, and test coverage.
-   If `gh` fails, warn and continue (non-blocking).
+   
+   **MANDATORY — Verify Close Succeeded**:
+   ```bash
+   # After closing, verify the issue state
+   ACTUAL_STATE=$(gh issue view "$ISSUE_NUMBER" --repo "ORG/REPO" --json state --jq '.state')
+   if [ "$ACTUAL_STATE" != "CLOSED" ]; then
+     # Retry once with GITHUB_TOKEN cleared (IDE env var may have reappeared)
+     unset GITHUB_TOKEN
+     gh issue close "$ISSUE_NUMBER" --repo "ORG/REPO" --reason completed
+   fi
+   ```
+   If close still fails after retry: log to audit.md as "⚠️ Pending closure: Issue #N" and continue (non-blocking). Report to user at end of workflow.
 
 ---
 
